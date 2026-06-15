@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "OqOZA2oKczj4Nqlkb-yaj"
+uri = "file://artifacts/ban-al-haidari/public/hero-bg.png"
+type = "image"
+title = "Hero background"
+
+[[generated]]
+id = "iIokaYn6iTNKaHtYLc2T5"
+uri = "file://artifacts/ban-al-haidari/public/about-bg.png"
+type = "image"
+title = "About section sanctuary"

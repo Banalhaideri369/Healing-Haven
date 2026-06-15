@@ -1,0 +1,81 @@
+import React from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+
+export function Hero() {
+  const { scrollY } = useScroll();
+  const y = useTransform(scrollY, [0, 1000], [0, 400]);
+  const opacity = useTransform(scrollY, [0, 500], [1, 0]);
+
+  return (
+    <section className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
+      {/* Background Image with Parallax */}
+      <motion.div
+        className="absolute inset-0 w-full h-full"
+        style={{ y, opacity }}
+      >
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/hero-bg.png')" }}
+        />
+        {/* Dark overlay to ensure text legibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background" />
+      </motion.div>
+
+      {/* Content */}
+      <div className="relative z-10 text-center px-6 flex flex-col items-center max-w-4xl mx-auto mt-20">
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-primary tracking-[0.3em] uppercase text-sm md:text-base font-semibold mb-6"
+        >
+          Sacred Energy Healing
+        </motion.p>
+        
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1, delay: 0.4 }}
+          className="font-serif text-5xl md:text-7xl lg:text-8xl xl:text-9xl text-foreground mb-8 leading-tight"
+        >
+          Ban <span className="gold-gradient-text italic">Al-Haidari</span>
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.8 }}
+          className="text-muted-foreground text-lg md:text-xl font-light mb-12 max-w-2xl"
+        >
+          Transformative healing for mind, body, and soul. Step into a sanctuary of deep restoration and spiritual awakening.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 1 }}
+        >
+          <a
+            href="#contact"
+            className="group relative inline-flex items-center justify-center px-8 py-4 bg-transparent text-primary uppercase tracking-widest font-semibold text-sm overflow-hidden transition-all hover:text-primary-foreground"
+            data-testid="link-hero-book"
+          >
+            <span className="absolute inset-0 w-full h-full bg-primary/10 border border-primary/50 group-hover:bg-primary transition-all duration-500 ease-out"></span>
+            <span className="relative z-10">Book a Session</span>
+          </a>
+        </motion.div>
+      </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5, duration: 1 }}
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+      >
+        <span className="text-xs text-muted-foreground tracking-widest uppercase">Scroll</span>
+        <div className="w-[1px] h-12 bg-gradient-to-b from-primary/50 to-transparent" />
+      </motion.div>
+    </section>
+  );
+}
