@@ -30,13 +30,16 @@ export function Header() {
       }`}
     >
       <div className="container mx-auto px-6 flex items-center justify-between">
-        <a href="#" className="block" data-testid="link-home">
-          <img
-            src="/logo.png"
-            alt="Ban Al-Haidari Logo"
-            className="h-16 md:h-[120px] object-contain transition-all duration-500"
-            data-testid="img-logo"
-          />
+        <a href="#" className="block group" data-testid="link-home">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-75 opacity-0 group-hover:opacity-100 transition-all duration-700 pointer-events-none" />
+            <img
+              src="/logo.png"
+              alt="Ban Al-Haidari Logo"
+              className="relative h-16 md:h-[110px] object-contain transition-all duration-500 drop-shadow-[0_0_18px_rgba(212,175,55,0.55)] group-hover:drop-shadow-[0_0_32px_rgba(212,175,55,0.85)]"
+              data-testid="img-logo"
+            />
+          </div>
         </a>
 
         {/* Desktop Nav */}
