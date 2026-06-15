@@ -12,7 +12,7 @@ export function Footer() {
             <img
               src="/logo.png"
               alt="Ban Al-Haidari Logo"
-              className="relative h-[100px] object-contain drop-shadow-[0_0_22px_rgba(212,175,55,0.5)] group-hover:drop-shadow-[0_0_40px_rgba(212,175,55,0.9)] transition-all duration-500"
+              className="relative h-[140px] object-contain drop-shadow-[0_0_22px_rgba(212,175,55,0.5)] group-hover:drop-shadow-[0_0_40px_rgba(212,175,55,0.9)] transition-all duration-500"
               data-testid="img-footer-logo"
             />
           </div>

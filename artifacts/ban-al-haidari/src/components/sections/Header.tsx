@@ -36,7 +36,7 @@ export function Header() {
             <img
               src="/logo.png"
               alt="Ban Al-Haidari Logo"
-              className="relative h-16 md:h-[110px] object-contain transition-all duration-500 drop-shadow-[0_0_18px_rgba(212,175,55,0.55)] group-hover:drop-shadow-[0_0_32px_rgba(212,175,55,0.85)]"
+              className="relative h-24 md:h-[150px] object-contain transition-all duration-500 drop-shadow-[0_0_18px_rgba(212,175,55,0.55)] group-hover:drop-shadow-[0_0_32px_rgba(212,175,55,0.85)]"
               data-testid="img-logo"
             />
           </div>
