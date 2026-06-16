@@ -17,15 +17,21 @@ export function About() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1 }}
-            className="w-full lg:w-1/2 relative"
+            className="w-full lg:w-2/5 relative flex-shrink-0"
           >
-            <div className="relative aspect-[4/5] w-full max-w-md mx-auto">
-              <div className="absolute inset-0 border border-primary/30 translate-x-4 translate-y-4" />
-              <div
-                className="absolute inset-0 bg-cover bg-center grayscale-[20%] sepia-[10%] brightness-90 contrast-125"
-                style={{ backgroundImage: "url('/about-bg.png')" }}
+            <div className="relative w-full max-w-sm mx-auto">
+              {/* Decorative border offset */}
+              <div className="absolute inset-0 border border-primary/30 translate-x-4 translate-y-4 rounded-sm" />
+              {/* Glow behind photo */}
+              <div className="absolute inset-0 bg-primary/10 blur-2xl scale-90 rounded-full pointer-events-none" />
+              {/* Actual photo */}
+              <img
+                src="/ban-photo.png"
+                alt="Ban Al-Haidari"
+                className="relative w-full object-cover object-top rounded-sm drop-shadow-[0_8px_40px_rgba(212,175,55,0.25)]"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+              {/* Bottom fade */}
+              <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-background to-transparent rounded-b-sm" />
             </div>
           </motion.div>
 
@@ -35,31 +41,40 @@ export function About() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="w-full lg:w-1/2 max-w-2xl"
+            className="w-full lg:w-3/5"
           >
             <h2 className="text-primary uppercase tracking-[0.2em] text-sm font-semibold mb-4">
               {t.about.label}
             </h2>
-            <h3 className="font-serif text-4xl md:text-5xl lg:text-6xl text-foreground mb-8 leading-tight">
+            <h3 className="font-serif text-4xl md:text-5xl lg:text-6xl text-foreground mb-2 leading-tight">
               {t.about.heading1}{" "}
-              <span className="italic text-muted">{t.about.heading2}</span>{" "}
-              {t.about.heading3}
+              <span className="gold-gradient-text">{t.about.heading2}</span>
             </h3>
+            <p className="text-muted uppercase tracking-widest text-sm mb-8 font-light">
+              {t.about.subtitle}
+            </p>
 
-            <div className="space-y-6 text-muted-foreground text-lg leading-relaxed font-light">
+            <div className="space-y-5 text-muted-foreground text-base md:text-lg leading-relaxed font-light">
               <p>{t.about.p1}</p>
               <p>{t.about.p2}</p>
               <p>{t.about.p3}</p>
+              <p>{t.about.p4}</p>
             </div>
 
-            <div className="mt-12 pt-12 border-t border-primary/20 flex gap-12">
+            {/* Quote */}
+            <blockquote className="mt-8 border-s-2 border-primary ps-5 italic text-muted text-lg font-serif">
+              {t.about.quote}
+            </blockquote>
+
+            {/* Stats */}
+            <div className="mt-10 pt-10 border-t border-primary/20 flex gap-12">
               <div>
                 <p className="font-serif text-4xl text-primary mb-2">{t.about.stat1Value}</p>
-                <p className="text-sm uppercase tracking-widest text-muted-foreground">{t.about.stat1Label}</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">{t.about.stat1Label}</p>
               </div>
               <div>
                 <p className="font-serif text-4xl text-primary mb-2">{t.about.stat2Value}</p>
-                <p className="text-sm uppercase tracking-widest text-muted-foreground">{t.about.stat2Label}</p>
+                <p className="text-xs uppercase tracking-widest text-muted-foreground">{t.about.stat2Label}</p>
               </div>
             </div>
           </motion.div>
