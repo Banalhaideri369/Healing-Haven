@@ -12,7 +12,7 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const { t, toggleLang, lang } = useLanguage();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [, navigate] = useLocation();
 
   useEffect(() => {
@@ -77,14 +77,16 @@ export function Header() {
             {/* Auth button */}
             {user ? (
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate("/dashboard")}
-                  className="flex items-center gap-1.5 text-xs text-primary font-medium hover:text-primary/80 transition-colors border border-primary/30 px-3 py-2 hover:bg-primary/10"
-                  data-testid="button-dashboard"
-                >
-                  <LayoutDashboard size={14} />
-                  {t.auth.dashboard}
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate("/dashboard")}
+                    className="flex items-center gap-1.5 text-xs text-primary font-medium hover:text-primary/80 transition-colors border border-primary/30 px-3 py-2 hover:bg-primary/10"
+                    data-testid="button-dashboard"
+                  >
+                    <LayoutDashboard size={14} />
+                    {t.auth.dashboard}
+                  </button>
+                )}
                 <button
                   onClick={() => logOut()}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-2"

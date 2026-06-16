@@ -16,7 +16,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/dashboard">
-        {() => <ProtectedRoute component={Dashboard} />}
+        {() => <ProtectedRoute component={Dashboard} adminOnly />}
       </Route>
       <Route component={NotFound} />
     </Switch>
