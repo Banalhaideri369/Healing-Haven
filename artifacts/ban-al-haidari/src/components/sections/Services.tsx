@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
 import { Sparkles, Waves, Orbit, Wind } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const icons = [Waves, Sparkles, Orbit, Wind];
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -12,9 +13,9 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.8 } },
 };
 
 export function Services() {

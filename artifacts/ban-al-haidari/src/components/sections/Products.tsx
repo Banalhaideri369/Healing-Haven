@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
 import { ShoppingCart, CreditCard } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -9,7 +10,7 @@ const productImages = [
   "/product-4.jpg",
 ];
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -17,9 +18,9 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 40 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: "easeOut" } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.7 } },
 };
 
 export function Products() {
