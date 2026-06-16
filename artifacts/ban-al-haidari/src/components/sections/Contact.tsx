@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { SocialIconsPulsing } from "@/components/SocialLinks";
 
 export function Contact() {
   const [status, setStatus] = useState<"idle" | "submitting" | "success">("idle");
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,11 +18,29 @@ export function Contact() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
       <div className="container mx-auto px-6 max-w-4xl relative z-10">
+
+        {/* ── Social Icons Banner ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="flex flex-col items-center gap-6 mb-20"
+        >
+          <p className="text-xs uppercase tracking-[0.3em] text-primary/70 font-semibold">
+            {isRTL ? "تواصلي معنا عبر" : "Connect with us on"}
+          </p>
+
+          <SocialIconsPulsing size="lg" showLabel className="justify-center" />
+
+          <div className="w-48 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        </motion.div>
+
         <div className="flex flex-col md:flex-row gap-16">
 
           {/* Info Side */}
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0, x: isRTL ? 30 : -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
@@ -46,7 +65,7 @@ export function Contact() {
               <div>
                 <h4 className="font-serif text-xl text-primary mb-2">{t.contact.contactTitle}</h4>
                 <p className="text-muted-foreground font-light">
-                  concierge@banalhaidari.com<br />+1 (555) 019-8273
+                  concierge@banalhaidari.com
                 </p>
               </div>
             </div>
@@ -54,7 +73,7 @@ export function Contact() {
 
           {/* Form Side */}
           <motion.div
-            initial={{ opacity: 0, x: 30 }}
+            initial={{ opacity: 0, x: isRTL ? -30 : 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}

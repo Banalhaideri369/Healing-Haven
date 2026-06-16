@@ -1,4 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
+import { SocialIconsPulsing } from "@/components/SocialLinks";
 
 export function Footer() {
   const { t } = useLanguage();
@@ -18,21 +19,11 @@ export function Footer() {
           </div>
         </a>
 
-        <p className="text-primary font-serif text-xl mb-8 italic">
+        <p className="text-primary font-serif text-xl mb-10 italic">
           "{t.footer.tagline}"
         </p>
 
-        <div className="flex gap-8 mb-12">
-          {["Instagram", "Facebook", "Spotify"].map((social) => (
-            <a
-              key={social}
-              href={`#${social.toLowerCase()}`}
-              className="text-xs uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
-            >
-              {social}
-            </a>
-          ))}
-        </div>
+        <SocialIconsPulsing size="md" showLabel className="justify-center mb-12" />
 
         <div className="w-full max-w-md h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-8" />
 
