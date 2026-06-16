@@ -40,14 +40,29 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       onClose();
     } catch (err: unknown) {
       const code = (err as { code?: string }).code ?? "";
-      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+      const message = (err as { message?: string }).message ?? "";
+      console.error("Auth error — code:", code, "message:", message);
+
+      if (
+        code === "auth/invalid-credential" ||
+        code === "auth/wrong-password" ||
+        code === "auth/user-not-found"
+      ) {
         setError(t.auth.errorInvalid);
       } else if (code === "auth/email-already-in-use") {
         setError(t.auth.errorExists);
       } else if (code === "auth/weak-password") {
         setError(t.auth.errorWeak);
+      } else if (code === "auth/operation-not-allowed") {
+        setError(isRTL ? "تسجيل الدخول بالبريد غير مفعّل في Firebase — فعّليه من Console" : "Email sign-in is not enabled in Firebase Console");
+      } else if (code === "auth/network-request-failed") {
+        setError(isRTL ? "تحقّقي من اتصالك بالإنترنت" : "Network error — check your connection");
+      } else if (code === "auth/too-many-requests") {
+        setError(isRTL ? "محاولات كثيرة، انتظري قليلاً وحاولي مجدداً" : "Too many attempts — please wait and try again");
+      } else if (!code && message.includes("not initialized")) {
+        setError(isRTL ? "Firebase غير متصل — تحقّقي من الـ API Key" : "Firebase not connected — check API Key");
       } else {
-        setError(t.auth.errorGeneral);
+        setError(`${t.auth.errorGeneral} (${code || "unknown"})`);
       }
     } finally {
       setLoading(false);
