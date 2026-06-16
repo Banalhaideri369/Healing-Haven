@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LogOut, UserCircle } from "lucide-react";
+import { Menu, X, LogOut, UserCircle, LayoutDashboard } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { logOut } from "@/lib/auth";
 import { AuthModal } from "./AuthModal";
+import { useLocation } from "wouter";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -12,6 +13,7 @@ export function Header() {
   const [authOpen, setAuthOpen] = useState(false);
   const { t, toggleLang, lang } = useLanguage();
   const { user } = useAuth();
+  const [, navigate] = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -75,13 +77,17 @@ export function Header() {
             {/* Auth button */}
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-xs text-primary font-medium">
-                  <UserCircle size={16} />
-                  {displayName}
-                </span>
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="flex items-center gap-1.5 text-xs text-primary font-medium hover:text-primary/80 transition-colors border border-primary/30 px-3 py-2 hover:bg-primary/10"
+                  data-testid="button-dashboard"
+                >
+                  <LayoutDashboard size={14} />
+                  {t.auth.dashboard}
+                </button>
                 <button
                   onClick={() => logOut()}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-2"
                   data-testid="button-logout"
                   title={t.auth.logout}
                 >
