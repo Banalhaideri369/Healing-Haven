@@ -323,157 +323,116 @@ export default function Profile() {
             </div>
 
             {/* ── Change Password Card ──────────────────────────────────── */}
-            <div className="border border-primary/15 bg-white/[0.02] relative overflow-hidden">
+            <div className="border border-primary/15 bg-white/[0.02] p-6 relative">
               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
 
-              {/* Header — always visible, click to toggle */}
-              <button
-                onClick={() => { setPwOpen((v) => !v); setCurrentPw(""); setNewPw(""); setConfirmPw(""); }}
-                className="w-full flex items-center justify-between p-6 group"
-              >
-                <div className="flex items-center gap-2 text-primary">
-                  <KeyRound size={16} />
-                  <h2 className="text-sm uppercase tracking-widest font-semibold">
-                    {isRTL ? "تغيير كلمة المرور" : "Change Password"}
-                  </h2>
+              {/* Header */}
+              <div className="flex items-center gap-2 text-primary mb-6">
+                <KeyRound size={16} />
+                <h2 className="text-sm uppercase tracking-widest font-semibold">
+                  {isRTL ? "تغيير كلمة المرور" : "Change Password"}
+                </h2>
+              </div>
+
+              <form onSubmit={handleChangePassword} className="space-y-5">
+                {/* Current password */}
+                <div>
+                  <label className={labelClass}>
+                    {isRTL ? "كلمة المرور الحالية" : "Current Password"}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPw ? "text" : "password"}
+                      value={currentPw}
+                      onChange={(e) => setCurrentPw(e.target.value)}
+                      placeholder="••••••••"
+                      className={pwInputClass}
+                      autoComplete="current-password"
+                    />
+                    <button type="button" onClick={() => setShowCurrentPw((v) => !v)}
+                      className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
+                      {showCurrentPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
                 </div>
-                <motion.span
-                  animate={{ rotate: pwOpen ? 45 : 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="text-muted-foreground group-hover:text-primary transition-colors text-lg leading-none"
-                >
-                  +
-                </motion.span>
-              </button>
 
-              {/* Form — animated expand/collapse */}
-              <AnimatePresence initial={false}>
-                {pwOpen && (
-                  <motion.div
-                    key="pw-form"
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="overflow-hidden"
+                {/* New password */}
+                <div>
+                  <label className={labelClass}>
+                    {isRTL ? "كلمة المرور الجديدة" : "New Password"}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPw ? "text" : "password"}
+                      value={newPw}
+                      onChange={(e) => setNewPw(e.target.value)}
+                      placeholder="••••••••"
+                      className={`${pwInputClass} ${!newPwStrong ? "border-red-500/50 focus:border-red-500" : newPw.length >= 6 ? "border-emerald-500/40 focus:border-emerald-500" : ""}`}
+                      autoComplete="new-password"
+                    />
+                    <button type="button" onClick={() => setShowNewPw((v) => !v)}
+                      className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
+                      {showNewPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  <AnimatePresence>
+                    {newPw.length > 0 && (
+                      <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className={`text-[10px] mt-1.5 ${newPw.length >= 6 ? "text-emerald-400" : "text-red-400"}`}>
+                        {newPw.length >= 6
+                          ? (isRTL ? "✓ كلمة مرور قوية" : "✓ Strong password")
+                          : (isRTL ? `${6 - newPw.length} أحرف بعد` : `${6 - newPw.length} more characters needed`)}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Confirm new password */}
+                <div>
+                  <label className={labelClass}>
+                    {isRTL ? "تأكيد كلمة المرور الجديدة" : "Confirm New Password"}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPw ? "text" : "password"}
+                      value={confirmPw}
+                      onChange={(e) => setConfirmPw(e.target.value)}
+                      placeholder="••••••••"
+                      className={`${pwInputClass} ${!pwMatch ? "border-red-500/50 focus:border-red-500" : confirmPw.length >= 6 && pwMatch ? "border-emerald-500/40 focus:border-emerald-500" : ""}`}
+                      autoComplete="new-password"
+                    />
+                    <button type="button" onClick={() => setShowConfirmPw((v) => !v)}
+                      className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
+                      {showConfirmPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                  <AnimatePresence>
+                    {confirmPw.length > 0 && (
+                      <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className={`text-[10px] mt-1.5 flex items-center gap-1 ${pwMatch ? "text-emerald-400" : "text-red-400"}`}>
+                        {pwMatch
+                          ? <><ShieldCheck size={11} />{isRTL ? "كلمتا المرور متطابقتان" : "Passwords match"}</>
+                          : <>{isRTL ? "✗ كلمتا المرور غير متطابقتان" : "✗ Passwords do not match"}</>}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Submit */}
+                <div className="pt-1">
+                  <button
+                    type="submit"
+                    disabled={changingPw || !pwFormValid}
+                    className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground text-xs uppercase tracking-widest font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   >
-                    <form onSubmit={handleChangePassword} className="px-6 pb-6 space-y-4">
-                      <div className="h-px bg-primary/10 mb-5" />
-
-                      {/* Current password */}
-                      <div>
-                        <label className={labelClass}>
-                          {isRTL ? "كلمة المرور الحالية" : "Current Password"}
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showCurrentPw ? "text" : "password"}
-                            value={currentPw}
-                            onChange={(e) => setCurrentPw(e.target.value)}
-                            placeholder="••••••••"
-                            className={pwInputClass}
-                            required
-                            autoComplete="current-password"
-                          />
-                          <button type="button" onClick={() => setShowCurrentPw((v) => !v)}
-                            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
-                            {showCurrentPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* New password */}
-                      <div>
-                        <label className={labelClass}>
-                          {isRTL ? "كلمة المرور الجديدة" : "New Password"}
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showNewPw ? "text" : "password"}
-                            value={newPw}
-                            onChange={(e) => setNewPw(e.target.value)}
-                            placeholder="••••••••"
-                            className={`${pwInputClass} ${!newPwStrong ? "border-red-500/50 focus:border-red-500" : newPw.length >= 6 ? "border-emerald-500/40 focus:border-emerald-500" : ""}`}
-                            minLength={6}
-                            required
-                            autoComplete="new-password"
-                          />
-                          <button type="button" onClick={() => setShowNewPw((v) => !v)}
-                            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
-                            {showNewPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                        {/* Strength hint */}
-                        <AnimatePresence>
-                          {newPw.length > 0 && (
-                            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className={`text-[10px] mt-1.5 ${newPw.length >= 6 ? "text-emerald-400" : "text-red-400"}`}>
-                              {newPw.length >= 6
-                                ? (isRTL ? "✓ كلمة مرور قوية" : "✓ Strong password")
-                                : (isRTL ? `${6 - newPw.length} أحرف بعد` : `${6 - newPw.length} more characters needed`)}
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* Confirm new password */}
-                      <div>
-                        <label className={labelClass}>
-                          {isRTL ? "تأكيد كلمة المرور الجديدة" : "Confirm New Password"}
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showConfirmPw ? "text" : "password"}
-                            value={confirmPw}
-                            onChange={(e) => setConfirmPw(e.target.value)}
-                            placeholder="••••••••"
-                            className={`${pwInputClass} ${!pwMatch ? "border-red-500/50 focus:border-red-500" : confirmPw.length >= 6 && pwMatch ? "border-emerald-500/40 focus:border-emerald-500" : ""}`}
-                            required
-                            autoComplete="new-password"
-                          />
-                          <button type="button" onClick={() => setShowConfirmPw((v) => !v)}
-                            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
-                            {showConfirmPw ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                        {/* Match indicator */}
-                        <AnimatePresence>
-                          {confirmPw.length > 0 && (
-                            <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                              className={`text-[10px] mt-1.5 flex items-center gap-1 ${pwMatch ? "text-emerald-400" : "text-red-400"}`}>
-                              {pwMatch
-                                ? <><ShieldCheck size={11} />{isRTL ? "كلمتا المرور متطابقتان" : "Passwords match"}</>
-                                : <>{isRTL ? "✗ كلمتا المرور غير متطابقتان" : "✗ Passwords do not match"}</>}
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-3 pt-2">
-                        <button
-                          type="submit"
-                          disabled={changingPw || !pwFormValid}
-                          className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground text-xs uppercase tracking-widest font-semibold hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {changingPw ? (
-                            <><div className="w-3.5 h-3.5 border border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />{isRTL ? "جاري التغيير..." : "Updating..."}</>
-                          ) : (
-                            <><KeyRound size={14} />{isRTL ? "تغيير كلمة المرور" : "Update Password"}</>
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setPwOpen(false); setCurrentPw(""); setNewPw(""); setConfirmPw(""); }}
-                          className="px-4 py-3 text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest transition-colors"
-                        >
-                          {isRTL ? "إلغاء" : "Cancel"}
-                        </button>
-                      </div>
-                    </form>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    {changingPw ? (
+                      <><div className="w-3.5 h-3.5 border border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />{isRTL ? "جاري التغيير..." : "Updating..."}</>
+                    ) : (
+                      <><KeyRound size={14} />{isRTL ? "تغيير كلمة المرور" : "Update Password"}</>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
 
           </motion.div>
