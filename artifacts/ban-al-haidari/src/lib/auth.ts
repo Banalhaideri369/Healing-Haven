@@ -5,6 +5,9 @@ import {
   onAuthStateChanged,
   User,
   updateProfile,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from "firebase/auth";
 import { auth } from "./firebase";
 
@@ -34,4 +37,24 @@ export function onAuthChange(callback: (user: User | null) => void) {
     return () => {};
   }
   return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Securely change the user's password.
+ * Requires re-authentication with current password first.
+ */
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  if (!auth?.currentUser) throw new Error("no-user");
+  const user = auth.currentUser;
+  if (!user.email) throw new Error("no-email");
+
+  // Re-authenticate before changing password (Firebase requirement)
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+
+  // Now update the password
+  await updatePassword(user, newPassword);
 }
