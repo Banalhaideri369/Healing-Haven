@@ -9,6 +9,7 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   reload,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "./firebase";
 
@@ -38,6 +39,15 @@ export function onAuthChange(callback: (user: User | null) => void) {
     return () => {};
   }
   return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Send a password-reset email via Firebase Auth.
+ * Firebase delivers a secure one-time link — no phone support needed.
+ */
+export async function resetPassword(email: string): Promise<void> {
+  if (!auth) throw new Error("Firebase Auth not initialized");
+  await sendPasswordResetEmail(auth, email);
 }
 
 /**
