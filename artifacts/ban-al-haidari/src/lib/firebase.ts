@@ -4,13 +4,18 @@ import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  authDomain: "ban-alhaidari-energy.firebaseapp.com",
+  projectId: "ban-alhaidari-energy",
+  storageBucket: "ban-alhaidari-energy.firebasestorage.app",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
+
+// DEBUG — shows first 8 chars of apiKey so you can verify it starts with "AIzaSy"
+console.log("[Firebase] apiKey preview:", import.meta.env.VITE_FIREBASE_API_KEY
+  ? String(import.meta.env.VITE_FIREBASE_API_KEY).slice(0, 10) + "..."
+  : "MISSING");
 
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
@@ -20,8 +25,9 @@ try {
   app = initializeApp(firebaseConfig);
   db = getFirestore(app);
   auth = getAuth(app);
+  console.log("[Firebase] initialized successfully ✓");
 } catch (err) {
-  console.warn("Firebase init failed — check your API key in Replit Secrets.", err);
+  console.error("[Firebase] init failed:", err);
 }
 
 export { app, db, auth };
