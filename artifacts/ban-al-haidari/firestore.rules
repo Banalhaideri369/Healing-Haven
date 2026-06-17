@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper: is the requesting user the admin? ───────────────────────────
+    function isAdmin() {
+      return request.auth != null
+          && request.auth.token.email == "ban.alhaideri369@gmail.com";
+    }
+
+    // ─── User Profiles ───────────────────────────────────────────────────────
+    // • Any authenticated user can read/write ONLY their own document.
+    // • Admin can read ALL user profile documents (for the admin dashboard).
+    // • Nobody (not even admin) can write another user's document.
+    match /user_profiles/{userId} {
+      allow read:  if request.auth != null
+                   && (request.auth.uid == userId || isAdmin());
+      allow create: if request.auth != null
+                   && request.auth.uid == userId
+                   && validProfile();
+      allow update: if request.auth != null
+                   && request.auth.uid == userId
+                   && validProfile();
+      allow delete: if false; // no deletes from client
+    }
+
+    // ─── Profile field validation ─────────────────────────────────────────────
+    function validProfile() {
+      let data = request.resource.data;
+      return data.keys().hasAll(["uid", "email"])
+          && data.uid == request.auth.uid
+          && data.email is string
+          && (data.bio == null    || (data.bio is string    && data.bio.size()    <= 500))
+          && (data.phone == null  || (data.phone is string  && data.phone.size()  <= 30))
+          && (data.intention == null || (data.intention is string && data.intention.size() <= 300));
+    }
+
+    // ─── Deny everything else ────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

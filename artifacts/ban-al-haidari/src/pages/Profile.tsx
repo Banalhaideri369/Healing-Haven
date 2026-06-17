@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { LogOut, ArrowLeft, ArrowRight, Save, User, Sparkles, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { LogOut, ArrowLeft, ArrowRight, Save, User, Sparkles, Clock, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { logOut } from "@/lib/auth";
-import { getUserProfile, upsertUserProfile, UserProfile } from "@/lib/userProfile";
+import { getUserProfile, upsertUserProfile, addActivity, UserProfile } from "@/lib/userProfile";
 import { useLocation } from "wouter";
 
 const fadeUp = {
@@ -29,12 +30,12 @@ export default function Profile() {
   });
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saved" | "error">("idle");
   const [loadError, setLoadError] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
 
   const displayName =
     user?.displayName ?? user?.email?.split("@")[0] ?? t.auth.myAccount;
+
   const joinedDate = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString(
         isRTL ? "ar-SA" : "en-GB",
@@ -50,20 +51,20 @@ export default function Profile() {
         if (data) {
           setProfile(data);
         } else {
+          const joinActivity = {
+            id: "join",
+            label: isRTL ? "انضممتِ إلى المنصة 🎉" : "Joined the platform 🎉",
+            date: new Date().toISOString(),
+          };
           upsertUserProfile(user.uid, {
             email: user.email ?? "",
             displayName: user.displayName ?? "",
             bio: "",
             intention: "",
             phone: "",
-            recentActivity: [
-              {
-                id: "join",
-                label: isRTL ? "انضممتِ إلى المنصة 🎉" : "Joined the platform 🎉",
-                date: new Date().toISOString(),
-              },
-            ],
+            recentActivity: [joinActivity],
           });
+          setProfile({ bio: "", intention: "", phone: "", recentActivity: [joinActivity] });
         }
         setLoadingProfile(false);
       })
@@ -76,7 +77,6 @@ export default function Profile() {
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
-    setSaveStatus("idle");
     try {
       await upsertUserProfile(user.uid, {
         bio: profile.bio ?? "",
@@ -85,13 +85,45 @@ export default function Profile() {
         email: user.email ?? "",
         displayName: user.displayName ?? "",
       });
-      setSaveStatus("saved");
+
+      // Log activity
+      const activityItem = {
+        id: `profile-update-${Date.now()}`,
+        label: isRTL ? "تم تحديث الملف الشخصي ✏️" : "Profile updated ✏️",
+        date: new Date().toISOString(),
+      };
+      await addActivity(user.uid, activityItem);
+
+      // Update local activity list
+      setProfile((p) => ({
+        ...p,
+        recentActivity: [activityItem, ...(p.recentActivity ?? [])].slice(0, 10),
+      }));
+
       setEditing(false);
-      setTimeout(() => setSaveStatus("idle"), 3000);
+
+      toast.success(isRTL ? "تم حفظ التغييرات بنجاح ✓" : "Changes saved successfully ✓", {
+        description: isRTL
+          ? "تم تحديث ملفك الشخصي"
+          : "Your profile has been updated",
+        duration: 4000,
+      });
     } catch {
-      setSaveStatus("error");
+      toast.error(isRTL ? "فشل الحفظ، حاولي مجدداً" : "Save failed, please try again", {
+        duration: 4000,
+      });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditing(false);
+    // Re-fetch to discard unsaved changes
+    if (user) {
+      getUserProfile(user.uid).then((data) => {
+        if (data) setProfile(data);
+      });
     }
   };
 
@@ -100,7 +132,8 @@ export default function Profile() {
     navigate("/");
   };
 
-  const labelClass = "text-xs uppercase tracking-widest text-muted-foreground block mb-1.5";
+  const labelClass =
+    "text-xs uppercase tracking-widest text-muted-foreground block mb-1.5";
   const inputClass =
     "w-full bg-white/5 border border-primary/20 px-4 py-3 text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary transition-colors text-sm rounded-none";
 
@@ -148,7 +181,7 @@ export default function Profile() {
       </header>
 
       <main className="container mx-auto px-6 py-12 max-w-5xl">
-        {/* Welcome hero */}
+        {/* Welcome */}
         <motion.div
           custom={0}
           variants={fadeUp}
@@ -185,6 +218,7 @@ export default function Profile() {
           >
             <div className="border border-primary/15 bg-white/[0.02] p-6 relative">
               <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 text-primary">
                   <User size={16} />
@@ -214,118 +248,156 @@ export default function Profile() {
                     <label className={labelClass}>
                       {isRTL ? "البريد الإلكتروني" : "Email"}
                     </label>
-                    <p className="text-sm text-foreground/60">{user?.email}</p>
+                    <p className="text-sm text-foreground/60 py-1">{user?.email}</p>
                   </div>
 
                   {/* Bio */}
                   <div>
                     <label className={labelClass}>{t.dashboard.bio}</label>
-                    {editing ? (
-                      <textarea
-                        rows={3}
-                        value={profile.bio ?? ""}
-                        onChange={(e) =>
-                          setProfile((p) => ({ ...p, bio: e.target.value }))
-                        }
-                        placeholder={t.dashboard.bioPlaceholder}
-                        className={inputClass + " resize-none"}
-                      />
-                    ) : (
-                      <p className="text-sm text-foreground/80 min-h-[3rem]">
-                        {profile.bio || (
-                          <span className="text-muted-foreground/50 italic">
-                            {t.dashboard.bioPlaceholder}
-                          </span>
-                        )}
-                      </p>
-                    )}
+                    <AnimatePresence mode="wait">
+                      {editing ? (
+                        <motion.textarea
+                          key="bio-edit"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          rows={3}
+                          value={profile.bio ?? ""}
+                          onChange={(e) =>
+                            setProfile((p) => ({ ...p, bio: e.target.value }))
+                          }
+                          placeholder={t.dashboard.bioPlaceholder}
+                          className={inputClass + " resize-none"}
+                          maxLength={500}
+                        />
+                      ) : (
+                        <motion.p
+                          key="bio-view"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-sm text-foreground/80 min-h-[3rem] py-1"
+                        >
+                          {profile.bio || (
+                            <span className="text-muted-foreground/40 italic">
+                              {t.dashboard.bioPlaceholder}
+                            </span>
+                          )}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Intention */}
                   <div>
                     <label className={labelClass}>{t.dashboard.intention}</label>
-                    {editing ? (
-                      <textarea
-                        rows={2}
-                        value={profile.intention ?? ""}
-                        onChange={(e) =>
-                          setProfile((p) => ({ ...p, intention: e.target.value }))
-                        }
-                        placeholder={t.dashboard.intentionPlaceholder}
-                        className={inputClass + " resize-none"}
-                      />
-                    ) : (
-                      <p className="text-sm text-foreground/80 min-h-[2rem]">
-                        {profile.intention || (
-                          <span className="text-muted-foreground/50 italic">
-                            {t.dashboard.intentionPlaceholder}
-                          </span>
-                        )}
-                      </p>
-                    )}
+                    <AnimatePresence mode="wait">
+                      {editing ? (
+                        <motion.textarea
+                          key="intention-edit"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          rows={2}
+                          value={profile.intention ?? ""}
+                          onChange={(e) =>
+                            setProfile((p) => ({ ...p, intention: e.target.value }))
+                          }
+                          placeholder={t.dashboard.intentionPlaceholder}
+                          className={inputClass + " resize-none"}
+                          maxLength={300}
+                        />
+                      ) : (
+                        <motion.p
+                          key="intention-view"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-sm text-foreground/80 min-h-[2rem] py-1"
+                        >
+                          {profile.intention || (
+                            <span className="text-muted-foreground/40 italic">
+                              {t.dashboard.intentionPlaceholder}
+                            </span>
+                          )}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Phone */}
                   <div>
                     <label className={labelClass}>{t.dashboard.phone}</label>
-                    {editing ? (
-                      <input
-                        type="tel"
-                        value={profile.phone ?? ""}
-                        onChange={(e) =>
-                          setProfile((p) => ({ ...p, phone: e.target.value }))
-                        }
-                        placeholder={t.dashboard.phonePlaceholder}
-                        className={inputClass}
-                      />
-                    ) : (
-                      <p className="text-sm text-foreground/80">
-                        {profile.phone || (
-                          <span className="text-muted-foreground/50 italic">
-                            {t.dashboard.phonePlaceholder}
-                          </span>
-                        )}
-                      </p>
-                    )}
+                    <AnimatePresence mode="wait">
+                      {editing ? (
+                        <motion.input
+                          key="phone-edit"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          type="tel"
+                          value={profile.phone ?? ""}
+                          onChange={(e) =>
+                            setProfile((p) => ({ ...p, phone: e.target.value }))
+                          }
+                          placeholder={t.dashboard.phonePlaceholder}
+                          className={inputClass}
+                          maxLength={30}
+                        />
+                      ) : (
+                        <motion.p
+                          key="phone-view"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-sm text-foreground/80 py-1"
+                        >
+                          {profile.phone || (
+                            <span className="text-muted-foreground/40 italic">
+                              {t.dashboard.phonePlaceholder}
+                            </span>
+                          )}
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
 
-                  {editing && (
-                    <div className="flex items-center gap-3 pt-2">
-                      <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground text-xs uppercase tracking-widest font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60"
+                  {/* Save / Cancel */}
+                  <AnimatePresence>
+                    {editing && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 8 }}
+                        className="flex items-center gap-3 pt-2"
                       >
-                        <Save size={14} />
-                        {saving ? t.dashboard.saving : t.dashboard.saveChanges}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditing(false);
-                          setSaveStatus("idle");
-                        }}
-                        className="px-4 py-3 text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest transition-colors"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  )}
-
-                  {saveStatus === "saved" && !editing && (
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-xs text-emerald-400"
-                    >
-                      {t.dashboard.profileUpdated}
-                    </motion.p>
-                  )}
+                        <button
+                          onClick={handleSave}
+                          disabled={saving}
+                          className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground text-xs uppercase tracking-widest font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60"
+                        >
+                          {saving ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                              {t.dashboard.saving}
+                            </>
+                          ) : (
+                            <>
+                              <Save size={14} />
+                              {t.dashboard.saveChanges}
+                            </>
+                          )}
+                        </button>
+                        <button
+                          onClick={handleCancel}
+                          disabled={saving}
+                          className="px-4 py-3 text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest transition-colors disabled:opacity-40"
+                        >
+                          ✕
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
             </div>
           </motion.div>
 
-          {/* RIGHT — Activity */}
+          {/* RIGHT — Stats + Activity */}
           <motion.div
             custom={2}
             variants={fadeUp}
@@ -333,10 +405,11 @@ export default function Profile() {
             animate="show"
             className="space-y-6"
           >
+            {/* Stat cards */}
             <div className="grid grid-cols-2 gap-3">
               {[
                 { icon: Sparkles, label: isRTL ? "رحلتي" : "My Journey", value: "✦" },
-                { icon: User, label: isRTL ? "حسابي" : "Account", value: "∞" },
+                { icon: CheckCircle2, label: isRTL ? "حسابي" : "Account", value: "∞" },
               ].map(({ icon: Icon, label, value }) => (
                 <div
                   key={label}
@@ -351,33 +424,49 @@ export default function Profile() {
               ))}
             </div>
 
+            {/* Recent Activity */}
             <div className="border border-primary/15 bg-white/[0.02] p-5 relative">
               <div className="flex items-center gap-2 text-primary mb-4">
                 <Clock size={15} />
                 <h2 className="text-xs uppercase tracking-widest font-semibold">
                   {t.dashboard.activitySection}
                 </h2>
+                {(profile.recentActivity?.length ?? 0) > 0 && (
+                  <span className="ms-auto text-[10px] bg-primary/15 text-primary px-2 py-0.5 rounded-full">
+                    {profile.recentActivity?.length}
+                  </span>
+                )}
               </div>
-              {!profile.recentActivity?.length ? (
+
+              {loadingProfile ? (
+                <div className="flex items-center gap-2 text-muted-foreground/50 text-xs py-2">
+                  <div className="w-3 h-3 border border-primary/20 border-t-primary rounded-full animate-spin" />
+                  {t.auth.loading}
+                </div>
+              ) : !profile.recentActivity?.length ? (
                 <p className="text-xs text-muted-foreground/50 italic">
                   {t.dashboard.noActivity}
                 </p>
               ) : (
                 <ul className="space-y-3">
-                  {profile.recentActivity.slice(0, 5).map((item) => (
-                    <li
-                      key={item.id}
-                      className="flex flex-col gap-0.5 border-b border-primary/10 pb-2 last:border-0 last:pb-0"
-                    >
-                      <span className="text-xs text-foreground/80">{item.label}</span>
-                      <span className="text-[10px] text-muted-foreground/50">
-                        {new Date(item.date).toLocaleDateString(
-                          isRTL ? "ar-SA" : "en-GB",
-                          { day: "numeric", month: "short", year: "numeric" }
-                        )}
-                      </span>
-                    </li>
-                  ))}
+                  <AnimatePresence initial={false}>
+                    {profile.recentActivity.slice(0, 8).map((item) => (
+                      <motion.li
+                        key={item.id}
+                        initial={{ opacity: 0, x: isRTL ? 10 : -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex flex-col gap-0.5 border-b border-primary/8 pb-2 last:border-0 last:pb-0"
+                      >
+                        <span className="text-xs text-foreground/80">{item.label}</span>
+                        <span className="text-[10px] text-muted-foreground/50">
+                          {new Date(item.date).toLocaleDateString(
+                            isRTL ? "ar-SA" : "en-GB",
+                            { day: "numeric", month: "short", year: "numeric" }
+                          )}
+                        </span>
+                      </motion.li>
+                    ))}
+                  </AnimatePresence>
                 </ul>
               )}
             </div>
