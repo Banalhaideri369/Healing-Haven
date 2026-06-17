@@ -27,13 +27,13 @@ function pwErrorMessage(code: string, isRTL: boolean): string {
     case "auth/invalid-credential":
       return isRTL ? "كلمة المرور الحالية غير صحيحة" : "Current password is incorrect";
     case "auth/weak-password":
-      return isRTL ? "كلمة المرور الجديدة ضعيفة — استخدمي 6 أحرف على الأقل" : "New password is too weak — use at least 6 characters";
+      return isRTL ? "كلمة المرور الجديدة ضعيفة — استخدم 6 أحرف على الأقل" : "New password is too weak — use at least 6 characters";
     case "auth/too-many-requests":
-      return isRTL ? "محاولات كثيرة، انتظري قليلاً وحاولي مجدداً" : "Too many attempts — please wait and try again";
+      return isRTL ? "محاولات كثيرة، انتظر قليلاً وحاول مجدداً" : "Too many attempts — please wait and try again";
     case "auth/network-request-failed":
-      return isRTL ? "تحقّقي من اتصالك بالإنترنت" : "Network error — check your connection";
+      return isRTL ? "تحقّق من اتصالك بالإنترنت" : "Network error — check your connection";
     default:
-      return isRTL ? "حدث خطأ، حاولي مجدداً" : "Something went wrong, please try again";
+      return isRTL ? "حدث خطأ، حاول مجدداً" : "Something went wrong, please try again";
   }
 }
 
@@ -85,7 +85,7 @@ export default function Profile() {
         } else {
           const joinActivity = {
             id: "join",
-            label: isRTL ? "انضممتِ إلى المنصة 🎉" : "Joined the platform 🎉",
+            label: isRTL ? "انضممت إلى المنصة 🎉" : "Joined the platform 🎉",
             date: new Date().toISOString(),
           };
           upsertUserProfile(user.uid, {
@@ -299,9 +299,6 @@ export default function Profile() {
                         <motion.p key="name-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                           className="text-sm text-foreground/80 py-1">
                           {displayName}
-                          <span className="ms-2 text-[10px] text-primary/50 uppercase tracking-widest">
-                            {isRTL ? "· Firebase Auth + Firestore" : "· Firebase Auth + Firestore"}
-                          </span>
                         </motion.p>
                       )}
                     </AnimatePresence>

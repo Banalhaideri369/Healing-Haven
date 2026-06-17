@@ -59,11 +59,11 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       } else if (code === "auth/operation-not-allowed") {
         setError(isRTL ? "تسجيل الدخول بالبريد غير مفعّل في Firebase Console" : "Email sign-in is not enabled in Firebase Console");
       } else if (code === "auth/network-request-failed") {
-        setError(isRTL ? "تحقّقي من اتصالك بالإنترنت" : "Network error — check your connection");
+        setError(isRTL ? "تحقّق من اتصالك بالإنترنت" : "Network error — check your connection");
       } else if (code === "auth/too-many-requests") {
-        setError(isRTL ? "محاولات كثيرة، انتظري قليلاً" : "Too many attempts — please wait");
+        setError(isRTL ? "محاولات كثيرة، انتظر قليلاً" : "Too many attempts — please wait");
       } else if (!code && message.includes("not initialized")) {
-        setError(isRTL ? "Firebase غير متصل — تحقّقي من الـ API Key" : "Firebase not connected — check API Key");
+        setError(isRTL ? "Firebase غير متصل — تحقّق من الـ API Key" : "Firebase not connected — check API Key");
       } else {
         setError(`${t.auth.errorGeneral} (${code || "unknown"})`);
       }
@@ -91,9 +91,9 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
       } else if (code === "auth/invalid-email") {
         setError(t.auth.forgotErrorInvalid);
       } else if (code === "auth/network-request-failed") {
-        setError(isRTL ? "تحقّقي من اتصالك بالإنترنت" : "Network error — check your connection");
+        setError(isRTL ? "تحقّق من اتصالك بالإنترنت" : "Network error — check your connection");
       } else if (code === "auth/too-many-requests") {
-        setError(isRTL ? "محاولات كثيرة، انتظري قليلاً" : "Too many attempts — please wait");
+        setError(isRTL ? "محاولات كثيرة، انتظر قليلاً" : "Too many attempts — please wait");
       } else {
         setError(t.auth.errorGeneral);
       }
