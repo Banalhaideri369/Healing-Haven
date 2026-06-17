@@ -7,7 +7,7 @@ import {
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { logOut, changePassword } from "@/lib/auth";
+import { logOut, changePassword, updateDisplayName } from "@/lib/auth";
 import { getUserProfile, upsertUserProfile, addActivity, UserProfile } from "@/lib/userProfile";
 import { useLocation } from "wouter";
 
@@ -46,6 +46,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<Partial<UserProfile>>({
     bio: "", intention: "", phone: "", recentActivity: [],
   });
+  const [editName, setEditName] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -61,7 +62,7 @@ export default function Profile() {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
 
-  const displayName = user?.displayName ?? user?.email?.split("@")[0] ?? t.auth.myAccount;
+  const displayName = profile.displayName || user?.displayName || user?.email?.split("@")[0] || t.auth.myAccount;
   const joinedDate = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString(
         isRTL ? "ar-SA" : "en-GB",
@@ -100,18 +101,33 @@ export default function Profile() {
       .catch(() => { setLoadError(true); setLoadingProfile(false); });
   }, [user, isRTL]);
 
-  // ── Profile save ───────────────────────────────────────────────────────────
+  // ── Profile save — syncs name to Firebase Auth + Firestore ────────────────
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
+      const trimmedName = editName.trim();
+
+      // 1. If name changed — update Firebase Auth first, then Firestore
+      const nameChanged = trimmedName.length > 0 && trimmedName !== (user.displayName ?? "");
+      if (nameChanged) {
+        await updateDisplayName(trimmedName);
+      }
+
+      const finalName = nameChanged ? trimmedName : (user.displayName ?? profile.displayName ?? "");
+
+      // 2. Save everything to Firestore
       await upsertUserProfile(user.uid, {
         bio: profile.bio ?? "",
         intention: profile.intention ?? "",
         phone: profile.phone ?? "",
         email: user.email ?? "",
-        displayName: user.displayName ?? "",
+        displayName: finalName,
       });
+
+      // 3. Update local state so heading updates immediately
+      setProfile((p) => ({ ...p, displayName: finalName }));
+
       const activityItem = {
         id: `profile-update-${Date.now()}`,
         label: isRTL ? "تم تحديث الملف الشخصي ✏️" : "Profile updated ✏️",
@@ -122,6 +138,7 @@ export default function Profile() {
         ...p,
         recentActivity: [activityItem, ...(p.recentActivity ?? [])].slice(0, 10),
       }));
+
       setEditing(false);
       toast.success(isRTL ? "تم حفظ التغييرات بنجاح ✓" : "Changes saved successfully ✓", {
         description: isRTL ? "تم تحديث ملفك الشخصي" : "Your profile has been updated",
@@ -136,7 +153,13 @@ export default function Profile() {
 
   const handleCancel = () => {
     setEditing(false);
+    setEditName(user?.displayName ?? profile.displayName ?? "");
     if (user) getUserProfile(user.uid).then((data) => { if (data) setProfile(data); });
+  };
+
+  const handleStartEditing = () => {
+    setEditName(user?.displayName ?? profile.displayName ?? "");
+    setEditing(true);
   };
 
   // ── Password change ────────────────────────────────────────────────────────
@@ -236,7 +259,7 @@ export default function Profile() {
                   <h2 className="text-sm uppercase tracking-widest font-semibold">{t.dashboard.profileSection}</h2>
                 </div>
                 {!editing && (
-                  <button onClick={() => setEditing(true)} className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest border border-primary/20 px-3 py-1.5 hover:border-primary">
+                  <button onClick={handleStartEditing} className="text-xs text-muted-foreground hover:text-primary transition-colors uppercase tracking-widest border border-primary/20 px-3 py-1.5 hover:border-primary">
                     {t.dashboard.editProfile}
                   </button>
                 )}
@@ -249,9 +272,39 @@ export default function Profile() {
                 </div>
               ) : (
                 <div className="space-y-5">
+                  {/* Email — read-only */}
                   <div>
                     <label className={labelClass}>{isRTL ? "البريد الإلكتروني" : "Email"}</label>
                     <p className="text-sm text-foreground/60 py-1">{user?.email}</p>
+                  </div>
+
+                  {/* Display Name — editable, syncs to Firebase Auth + Firestore */}
+                  <div>
+                    <label className={labelClass}>{isRTL ? "الاسم المعروض" : "Display Name"}</label>
+                    <AnimatePresence mode="wait">
+                      {editing ? (
+                        <motion.input
+                          key="name-edit"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          placeholder={isRTL ? "اسمك الكامل" : "Your full name"}
+                          className={inputClass}
+                          maxLength={60}
+                          autoFocus
+                        />
+                      ) : (
+                        <motion.p key="name-view" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                          className="text-sm text-foreground/80 py-1">
+                          {displayName}
+                          <span className="ms-2 text-[10px] text-primary/50 uppercase tracking-widest">
+                            {isRTL ? "· Firebase Auth + Firestore" : "· Firebase Auth + Firestore"}
+                          </span>
+                        </motion.p>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <div>

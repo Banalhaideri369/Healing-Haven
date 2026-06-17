@@ -8,6 +8,7 @@ import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
+  reload,
 } from "firebase/auth";
 import { auth } from "./firebase";
 
@@ -37,6 +38,17 @@ export function onAuthChange(callback: (user: User | null) => void) {
     return () => {};
   }
   return onAuthStateChanged(auth, callback);
+}
+
+/**
+ * Update the user's display name in Firebase Auth AND return the refreshed user.
+ * Caller is responsible for also updating Firestore.
+ */
+export async function updateDisplayName(newName: string): Promise<void> {
+  if (!auth?.currentUser) throw new Error("no-user");
+  await updateProfile(auth.currentUser, { displayName: newName.trim() });
+  // Reload so auth.currentUser.displayName reflects the new value immediately
+  await reload(auth.currentUser);
 }
 
 /**
