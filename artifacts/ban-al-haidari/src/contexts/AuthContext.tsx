@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "firebase/auth";
 import { onAuthChange } from "@/lib/auth";
 
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL as string;
+const ADMIN_EMAIL = "ban.alhaideri369@gmail.com";
 
 interface AuthContextValue {
   user: User | null;
@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
-  const isAdmin = !!user && !!ADMIN_EMAIL && user.email === ADMIN_EMAIL;
+  const isAdmin = !!user && user.email === ADMIN_EMAIL;
 
   return (
     <AuthContext.Provider value={{ user, loading, isAdmin }}>

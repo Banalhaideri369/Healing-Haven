@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LogOut, UserCircle, LayoutDashboard } from "lucide-react";
+import { Menu, X, LogOut, UserCircle, LayoutDashboard, User } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { logOut } from "@/lib/auth";
@@ -11,14 +11,27 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { t, toggleLang, lang } = useLanguage();
   const { user, isAdmin } = useAuth();
   const [, navigate] = useLocation();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close user menu on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const navLinks = [
@@ -30,6 +43,24 @@ export function Header() {
   ];
 
   const displayName = user?.displayName ?? user?.email?.split("@")[0] ?? t.auth.myAccount;
+
+  const handleGoProfile = () => {
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    navigate("/profile");
+  };
+
+  const handleGoAdmin = () => {
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    navigate("/admin");
+  };
+
+  const handleLogout = async () => {
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    await logOut();
+  };
 
   return (
     <>
@@ -74,27 +105,61 @@ export function Header() {
               {t.nav.book}
             </a>
 
-            {/* Auth button */}
+            {/* Auth area */}
             {user ? (
-              <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <button
-                    onClick={() => navigate("/dashboard")}
-                    className="flex items-center gap-1.5 text-xs text-primary font-medium hover:text-primary/80 transition-colors border border-primary/30 px-3 py-2 hover:bg-primary/10"
-                    data-testid="button-dashboard"
-                  >
-                    <LayoutDashboard size={14} />
-                    {t.auth.dashboard}
-                  </button>
-                )}
+              <div className="relative" ref={userMenuRef}>
                 <button
-                  onClick={() => logOut()}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-2"
-                  data-testid="button-logout"
-                  title={t.auth.logout}
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 px-3 py-2 border border-primary/30 text-primary hover:bg-primary/10 transition-all text-xs uppercase tracking-widest"
+                  data-testid="button-user-menu"
                 >
-                  <LogOut size={14} />
+                  <UserCircle size={15} />
+                  <span className="max-w-[100px] truncate">{displayName}</span>
                 </button>
+
+                <AnimatePresence>
+                  {userMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute end-0 top-full mt-2 w-48 bg-[#0f0a12] border border-primary/20 shadow-[0_8px_40px_rgba(0,0,0,0.6)] z-50 overflow-hidden"
+                    >
+                      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+                      <div className="p-2 space-y-0.5">
+                        <button
+                          onClick={handleGoProfile}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-foreground/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
+                          data-testid="button-goto-profile"
+                        >
+                          <User size={13} />
+                          {lang === "ar" ? "ملفي الشخصي" : "My Profile"}
+                        </button>
+                        {isAdmin && (
+                          <button
+                            onClick={handleGoAdmin}
+                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-primary/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
+                            data-testid="button-goto-admin"
+                          >
+                            <LayoutDashboard size={13} />
+                            {lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}
+                          </button>
+                        )}
+                        <div className="h-px bg-primary/10 my-1" />
+                        <button
+                          onClick={handleLogout}
+                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors text-start"
+                          data-testid="button-logout"
+                        >
+                          <LogOut size={13} />
+                          {t.auth.logout}
+                        </button>
+                      </div>
+                      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <button
@@ -120,9 +185,9 @@ export function Header() {
           <div className="md:hidden flex items-center gap-2">
             {user ? (
               <button
-                onClick={() => logOut()}
-                className="flex items-center gap-1 text-xs text-primary"
-                data-testid="button-logout-mobile"
+                onClick={() => setUserMenuOpen((v) => !v)}
+                className="flex items-center gap-1 text-xs text-primary border border-primary/30 px-2 py-1.5"
+                data-testid="button-user-menu-mobile"
               >
                 <UserCircle size={18} />
               </button>
@@ -151,6 +216,50 @@ export function Header() {
             </button>
           </div>
         </div>
+
+        {/* Mobile user dropdown */}
+        <AnimatePresence>
+          {userMenuOpen && user && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="md:hidden absolute top-full right-4 w-52 bg-[#0f0a12] border border-primary/20 shadow-[0_8px_40px_rgba(0,0,0,0.7)] z-50"
+            >
+              <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+              <div className="p-2 space-y-0.5">
+                <div className="px-3 py-2 border-b border-primary/10 mb-1">
+                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                </div>
+                <button
+                  onClick={handleGoProfile}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-foreground/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
+                >
+                  <User size={13} />
+                  {lang === "ar" ? "ملفي الشخصي" : "My Profile"}
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={handleGoAdmin}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-primary/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
+                  >
+                    <LayoutDashboard size={13} />
+                    {lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}
+                  </button>
+                )}
+                <div className="h-px bg-primary/10 my-1" />
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors text-start"
+                >
+                  <LogOut size={13} />
+                  {t.auth.logout}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile Nav */}
         <AnimatePresence>
