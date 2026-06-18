@@ -66,23 +66,45 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" dir={isRTL ? "rtl" : "ltr"}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+    /* ── Full-screen overlay ── */
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      dir={isRTL ? "rtl" : "ltr"}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+        onClick={onClose}
+      />
 
-      <div className="relative w-full max-w-xl bg-[#0f0a12] border border-primary/25 shadow-[0_0_80px_rgba(212,175,55,0.1)] overflow-y-auto max-h-[90vh]">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
+      {/* Modal — bottom-sheet on mobile, centered dialog on sm+ */}
+      <div className="relative w-full sm:w-[560px] sm:mx-4 bg-[#0f0a12] border-t sm:border border-primary/30 shadow-[0_-8px_60px_rgba(212,175,55,0.12)] sm:shadow-[0_0_80px_rgba(212,175,55,0.1)] rounded-t-2xl sm:rounded-none flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
+        {/* Gold top line */}
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/80 to-transparent rounded-t-2xl sm:rounded-none" />
+
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-3 sm:hidden">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/8">
-          <h3 className="font-serif text-xl text-foreground">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 border-b border-white/8 flex-shrink-0">
+          <h3 className="font-serif text-lg sm:text-xl text-foreground">
             {mode === "recorded" ? a.addRecordedTitle : a.addOnlineTitle}
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X size={18} />
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-full transition-colors"
+          >
+            <X size={16} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        {/* Scrollable form body */}
+        <form
+          onSubmit={handleSubmit}
+          className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5 space-y-4"
+        >
           {/* Image URL */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
@@ -93,10 +115,10 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
               value={image}
               onChange={(e) => setImage(e.target.value)}
               placeholder="https://..."
-              className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40"
+              className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
             />
             {image ? (
-              <div className="mt-2 w-24 h-16 border border-white/10 overflow-hidden">
+              <div className="mt-2 w-20 h-14 border border-white/10 overflow-hidden rounded-sm">
                 <img
                   src={image}
                   alt="preview"
@@ -105,8 +127,8 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                 />
               </div>
             ) : (
-              <div className="mt-2 w-24 h-16 border border-white/8 flex items-center justify-center bg-white/3">
-                <ImageIcon size={18} className="text-muted-foreground/30" />
+              <div className="mt-2 w-20 h-14 border border-white/8 flex items-center justify-center bg-white/3 rounded-sm">
+                <ImageIcon size={16} className="text-muted-foreground/30" />
               </div>
             )}
           </div>
@@ -114,14 +136,15 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
           {/* Title */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
-              {a.fieldTitle} <span className="text-red-400 normal-case text-[10px]">({a.fieldRequired})</span>
+              {a.fieldTitle}{" "}
+              <span className="text-red-400 normal-case text-[10px]">({a.fieldRequired})</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
-              className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50"
+              className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 rounded-sm"
             />
           </div>
 
@@ -135,11 +158,11 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder={a.fieldDescPlaceholder}
-              className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 resize-none"
+              className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 resize-none rounded-sm"
             />
           </div>
 
-          {/* ── Recorded-only fields ── */}
+          {/* ── Recorded-only ── */}
           {mode === "recorded" && (
             <>
               <div>
@@ -151,7 +174,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                   value={telegramLink}
                   onChange={(e) => setTelegramLink(e.target.value)}
                   placeholder="https://t.me/..."
-                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40"
+                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
                 />
               </div>
 
@@ -165,43 +188,46 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                   step={0.01}
                   value={price}
                   onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50"
+                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 rounded-sm"
                 />
               </div>
 
               {/* Discount toggle */}
-              <div className="border border-white/8 p-4 space-y-3">
+              <div className="border border-white/8 p-4 rounded-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-foreground">{a.fieldDiscount}</span>
                   <button
                     type="button"
                     onClick={() => setDiscountEnabled(!discountEnabled)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${
+                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
                       discountEnabled ? "bg-primary" : "bg-white/10"
                     }`}
                   >
-                    <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                      discountEnabled ? "translate-x-5" : "translate-x-0.5"
-                    }`} />
+                    <span
+                      className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                        discountEnabled ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
                   </button>
                 </div>
-
                 {discountEnabled && (
-                  <div className="flex items-center gap-3 pt-1">
+                  <div className="flex items-center gap-4 pt-1">
                     <div className="flex-1">
-                      <label className="block text-xs text-muted-foreground mb-1">{a.fieldDiscountPercent}</label>
+                      <label className="block text-xs text-muted-foreground mb-1.5">
+                        {a.fieldDiscountPercent}
+                      </label>
                       <input
                         type="number"
                         min={1}
                         max={100}
                         value={discountPercent}
                         onChange={(e) => setDiscountPercent(parseInt(e.target.value) || 0)}
-                        className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-3 py-2 focus:outline-none focus:border-primary/50"
+                        className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/50 rounded-sm"
                       />
                     </div>
-                    <div className="text-center pt-4">
+                    <div className="text-center pt-5">
                       <p className="text-xs text-muted-foreground line-through">${price.toFixed(2)}</p>
-                      <p className="text-primary font-semibold text-lg">${computedFinalPrice.toFixed(2)}</p>
+                      <p className="text-primary font-semibold text-xl">${computedFinalPrice.toFixed(2)}</p>
                     </div>
                   </div>
                 )}
@@ -209,7 +235,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
             </>
           )}
 
-          {/* ── Online-only fields ── */}
+          {/* ── Online-only ── */}
           {mode === "online" && (
             <div>
               <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
@@ -221,32 +247,38 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                 step={0.01}
                 value={sessionPrice}
                 onChange={(e) => setSessionPrice(parseFloat(e.target.value) || 0)}
-                className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50"
+                className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 rounded-sm"
               />
-              <p className="text-xs text-muted-foreground/50 mt-1">{a.availabilityNote}</p>
+              <p className="text-xs text-muted-foreground/50 mt-1.5">{a.availabilityNote}</p>
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/8">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 text-sm text-muted-foreground border border-white/10 hover:border-white/20 hover:text-foreground transition-colors"
-            >
-              {a.cancel}
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wider hover:bg-primary/90 disabled:opacity-60 transition-colors"
-            >
-              {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? a.savingBtn : a.save}
-            </button>
-          </div>
+          {/* Spacer so content isn't hidden behind sticky footer on mobile */}
+          <div className="h-2" />
         </form>
 
+        {/* Sticky footer actions */}
+        <div className="flex items-center justify-end gap-3 px-5 sm:px-6 py-4 border-t border-white/8 flex-shrink-0 bg-[#0f0a12]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm text-muted-foreground border border-white/10 hover:border-white/25 hover:text-foreground transition-colors rounded-sm"
+          >
+            {a.cancel}
+          </button>
+          <button
+            form="course-form"
+            type="submit"
+            onClick={handleSubmit}
+            disabled={saving}
+            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wider hover:bg-primary/90 disabled:opacity-60 transition-colors rounded-sm"
+          >
+            {saving && <Loader2 size={14} className="animate-spin" />}
+            {saving ? a.savingBtn : a.save}
+          </button>
+        </div>
+
+        {/* Bottom gold line */}
         <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </div>
     </div>

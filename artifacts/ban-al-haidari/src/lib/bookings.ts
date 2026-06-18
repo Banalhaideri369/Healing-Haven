@@ -31,11 +31,20 @@ export type NewBooking = Omit<Booking, "id" | "createdAt">;
 
 // ─── Firestore ────────────────────────────────────────────────────────────────
 
-export function subscribeBookings(cb: (bookings: Booking[]) => void): () => void {
-  if (!db) return () => {};
+export function subscribeBookings(
+  cb: (bookings: Booking[]) => void,
+  onError?: (code: string) => void,
+): () => void {
+  if (!db) { cb([]); return () => {}; }
   const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
-  return onSnapshot(q, (snap) =>
-    cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }))),
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }))),
+    (err) => {
+      console.warn("[bookings] Firestore error:", err.code);
+      cb([]);
+      onError?.(err.code);
+    },
   );
 }
 

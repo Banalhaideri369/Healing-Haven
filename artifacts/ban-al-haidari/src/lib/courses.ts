@@ -6,9 +6,11 @@ import {
   deleteDoc,
   updateDoc,
   onSnapshot,
+  getDocs,
   serverTimestamp,
   query,
   orderBy,
+  limit,
   type Timestamp,
 } from "firebase/firestore";
 
@@ -65,11 +67,20 @@ export const DEFAULT_AVAILABILITY: Availability = {
 
 // ─── Recorded Courses ─────────────────────────────────────────────────────────
 
-export function subscribeRecordedCourses(cb: (courses: RecordedCourse[]) => void): () => void {
-  if (!db) return () => {};
+export function subscribeRecordedCourses(
+  cb: (courses: RecordedCourse[]) => void,
+  onError?: () => void,
+): () => void {
+  if (!db) { cb([]); return () => {}; }
   const q = query(collection(db, "recorded_courses"), orderBy("createdAt", "desc"));
-  return onSnapshot(q, (snap) =>
-    cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<RecordedCourse, "id">) }))),
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<RecordedCourse, "id">) }))),
+    (err) => {
+      console.warn("[recorded_courses] Firestore error:", err.code);
+      cb([]);
+      onError?.();
+    },
   );
 }
 
@@ -88,13 +99,46 @@ export async function deleteRecordedCourse(id: string) {
   return deleteDoc(doc(db, "recorded_courses", id));
 }
 
+/** Seed the default workshop if the recorded_courses collection is empty. */
+export async function seedDefaultWorkshop(): Promise<boolean> {
+  if (!db) return false;
+  try {
+    const snap = await getDocs(query(collection(db, "recorded_courses"), limit(1)));
+    if (!snap.empty) return false; // Already has courses
+    await addDoc(collection(db, "recorded_courses"), {
+      title: "ورشة البيع والوفرة",
+      description:
+        "ورشة متكاملة تأخذك في رحلة عميقة للتحرر من الأنماط المحدودة حول المال والبيع، وتعيشين في تدفق الوفرة الحقيقية. تعلمي كيف تفتحين طاقة الاستقبال وتحولين علاقتك بالبيع من خوف إلى قوة.",
+      image: "/workshop-cover.jpg",
+      telegramLink: "https://t.me/+Luy1BC1WsokxNGVl",
+      price: 150,
+      discountEnabled: false,
+      discountPercent: 0,
+      createdAt: serverTimestamp(),
+    });
+    return true;
+  } catch (err) {
+    console.warn("[seed] Could not seed workshop:", err);
+    return false;
+  }
+}
+
 // ─── Online Courses ───────────────────────────────────────────────────────────
 
-export function subscribeOnlineCourses(cb: (courses: OnlineCourse[]) => void): () => void {
-  if (!db) return () => {};
+export function subscribeOnlineCourses(
+  cb: (courses: OnlineCourse[]) => void,
+  onError?: () => void,
+): () => void {
+  if (!db) { cb([]); return () => {}; }
   const q = query(collection(db, "online_courses"), orderBy("createdAt", "desc"));
-  return onSnapshot(q, (snap) =>
-    cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<OnlineCourse, "id">) }))),
+  return onSnapshot(
+    q,
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<OnlineCourse, "id">) }))),
+    (err) => {
+      console.warn("[online_courses] Firestore error:", err.code);
+      cb([]);
+      onError?.();
+    },
   );
 }
 

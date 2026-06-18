@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Send, Tag, Loader2 } from "lucide-react";
+import { Plus, Trash2, Send, Tag, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
   subscribeRecordedCourses,
   deleteRecordedCourse,
+  seedDefaultWorkshop,
   finalPrice,
   type RecordedCourse,
 } from "@/lib/courses";
@@ -17,20 +18,38 @@ const fadeUp = {
 };
 
 export function RecordedCoursesTab() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const a = t.admin;
 
   const [courses, setCourses] = useState<RecordedCourse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [firestoreError, setFirestoreError] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const seededRef = useRef(false);
 
   useEffect(() => {
-    const unsub = subscribeRecordedCourses((data) => {
-      setCourses(data);
-      setLoading(false);
-    });
+    const unsub = subscribeRecordedCourses(
+      async (data) => {
+        setCourses(data);
+        setLoading(false);
+        setFirestoreError(false);
+        // Auto-seed the existing workshop if collection is empty and not yet tried
+        if (data.length === 0 && !seededRef.current) {
+          seededRef.current = true;
+          setSeeding(true);
+          const added = await seedDefaultWorkshop();
+          setSeeding(false);
+          if (added) toast.success("تم إضافة الورشة الموجودة تلقائياً ✓");
+        }
+      },
+      () => {
+        setLoading(false);
+        setFirestoreError(true);
+      },
+    );
     return unsub;
   }, []);
 
@@ -49,10 +68,13 @@ export function RecordedCoursesTab() {
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-lg text-foreground font-medium">{a.recordedCourses}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{a.courseCount(courses.length)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {loading || seeding ? "..." : a.courseCount(courses.length)}
+          </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
@@ -63,13 +85,37 @@ export function RecordedCoursesTab() {
         </button>
       </div>
 
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 size={24} className="animate-spin text-primary/50" />
+      {/* Firestore permission error */}
+      {firestoreError && (
+        <div className="flex items-start gap-3 p-4 bg-red-500/8 border border-red-500/25 mb-6">
+          <AlertTriangle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm text-red-400 font-medium">
+              {lang === "ar" ? "خطأ في صلاحيات Firestore" : "Firestore Permission Error"}
+            </p>
+            <p className="text-xs text-red-400/70 mt-0.5">
+              {lang === "ar"
+                ? "يرجى نشر قواعد Firestore عبر Firebase CLI: firebase deploy --only firestore:rules"
+                : "Please deploy Firestore rules via Firebase CLI: firebase deploy --only firestore:rules"}
+            </p>
+          </div>
         </div>
       )}
 
-      {!loading && courses.length === 0 && (
+      {/* Loading / seeding */}
+      {(loading || seeding) && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 size={24} className="animate-spin text-primary/50" />
+          {seeding && (
+            <p className="text-xs text-muted-foreground/60">
+              {lang === "ar" ? "جاري تهيئة الورشة..." : "Initializing workshop..."}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && !seeding && courses.length === 0 && !firestoreError && (
         <div className="text-center py-20 border border-dashed border-white/8">
           <p className="text-muted-foreground/50 text-sm">{a.noCourses}</p>
           <button onClick={() => setShowAdd(true)} className="mt-3 text-primary text-sm hover:underline">
@@ -78,11 +124,11 @@ export function RecordedCoursesTab() {
         </div>
       )}
 
+      {/* Course grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {courses.map((course, i) => {
           const fp = finalPrice(course);
           const hasDiscount = course.discountEnabled && course.discountPercent > 0;
-
           return (
             <motion.div
               key={course.id}
@@ -144,7 +190,6 @@ export function RecordedCoursesTab() {
                     </a>
                   )}
                   <div className="flex-1" />
-
                   {confirmDelete === course.id ? (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-red-400">{a.deleteConfirm}</span>
@@ -173,7 +218,6 @@ export function RecordedCoursesTab() {
                   )}
                 </div>
               </div>
-
               <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
             </motion.div>
           );
