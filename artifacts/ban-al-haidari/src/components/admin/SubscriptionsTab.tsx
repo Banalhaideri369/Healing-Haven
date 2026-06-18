@@ -1,51 +1,46 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle, AlertTriangle } from "lucide-react";
+import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { subscribeBookings, type Booking } from "@/lib/bookings";
+import { apiGetBookings, type ApiBooking } from "@/lib/api";
 
 export function SubscriptionsTab() {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const a = t.admin;
 
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await apiGetBookings();
+      setBookings(data);
+    } catch {
+      // admin token may not be ready yet, keep current state
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const unsub = subscribeBookings(
-      (data) => {
-        setBookings(data);
-        setLoading(false);
-        setErrorCode(null);
-      },
-      (code) => {
-        setLoading(false);
-        setErrorCode(code);
-      },
-    );
-    return unsub;
-  }, []);
+    void load();
+    const timer = setInterval(() => void load(), 30_000);
+    return () => clearInterval(timer);
+  }, [load]);
 
   const recorded = bookings.filter((b) => b.courseType === "recorded");
   const online   = bookings.filter((b) => b.courseType === "online");
   const paid     = bookings.filter((b) => b.paymentStatus === "paid" || b.paymentStatus === "demo_paid");
 
-  const formatDate = (b: Booking) => {
+  const formatDateTime = (b: ApiBooking) => {
     if (b.selectedDate && b.selectedTime) return `${b.selectedDate} — ${b.selectedTime}`;
     if (b.selectedDate) return b.selectedDate;
-    if (b.createdAt) {
-      try {
-        const ts = b.createdAt as unknown as { seconds: number };
-        return new Date(ts.seconds * 1000).toLocaleDateString();
-      } catch { return "—"; }
-    }
-    return "—";
+    try { return new Date(b.createdAt).toLocaleDateString(); } catch { return "—"; }
   };
 
   return (
     <div>
-      {/* Stats bar */}
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
           { label: a.total,    value: bookings.length, icon: <Circle       size={16} className="text-primary/60" /> },
@@ -63,45 +58,21 @@ export function SubscriptionsTab() {
         ))}
       </div>
 
-      {/* Firestore permission error */}
-      {errorCode && (
-        <div className="flex items-start gap-3 p-4 bg-amber-500/8 border border-amber-500/25 mb-6">
-          <AlertTriangle size={16} className="text-amber-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-amber-400 font-medium">
-              {lang === "ar"
-                ? "تعذّر تحميل البيانات — خطأ في صلاحيات Firestore"
-                : "Could not load data — Firestore permission error"}
-            </p>
-            <p className="text-xs text-amber-400/70 mt-0.5">
-              {lang === "ar"
-                ? `كود الخطأ: ${errorCode}. يرجى نشر قواعد Firestore: firebase deploy --only firestore:rules`
-                : `Error code: ${errorCode}. Deploy Firestore rules: firebase deploy --only firestore:rules`}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin text-primary/50" />
         </div>
       )}
 
-      {/* Empty */}
-      {!loading && !errorCode && bookings.length === 0 && (
+      {!loading && bookings.length === 0 && (
         <div className="text-center py-20 border border-dashed border-white/8">
           <p className="text-muted-foreground/50 text-sm">{a.noBookings}</p>
           <p className="text-xs text-muted-foreground/30 mt-2">
-            {lang === "ar"
-              ? "ستظهر هنا بيانات المشتركين بمجرد تسجيل أول حجز."
-              : "Subscriber data will appear here once the first booking is registered."}
+            ستظهر هنا بيانات المشتركين بمجرد تسجيل أول حجز.
           </p>
         </div>
       )}
 
-      {/* Table */}
       {!loading && bookings.length > 0 && (
         <div className="border border-white/8 overflow-x-auto">
           <div className="h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -157,7 +128,7 @@ export function SubscriptionsTab() {
                     <div className="flex items-center gap-1">
                       {b.selectedDate && <Calendar size={11} className="text-primary/40" />}
                       {b.selectedTime && <Clock size={11} className="text-primary/40" />}
-                      {formatDate(b)}
+                      {formatDateTime(b)}
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">

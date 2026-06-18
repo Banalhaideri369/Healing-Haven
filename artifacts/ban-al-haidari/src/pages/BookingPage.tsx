@@ -6,10 +6,8 @@ import {
   User, Mail, Phone, MessageSquare, Loader2, CheckCircle2, Clock,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { addBooking } from "@/lib/bookings";
-import { type OnlineCourse, type DayKey } from "@/lib/courses";
+import { apiGetOnlineCourse, apiCreateBooking, type ApiOnlineCourse } from "@/lib/api";
+import { type DayKey } from "@/lib/courses";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -20,11 +18,7 @@ function toISO(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
-function isSameDay(d: Date, iso: string) {
-  return toISO(d) === iso;
-}
-
-// ─── Calendar Component ───────────────────────────────────────────────────────
+// ─── Calendar ────────────────────────────────────────────────────────────────
 
 function CalendarPicker({
   availability,
@@ -32,7 +26,7 @@ function CalendarPicker({
   onSelect,
   isRTL,
 }: {
-  availability: OnlineCourse["availability"];
+  availability: ApiOnlineCourse["availability"];
   selectedDate: string;
   onSelect: (date: string) => void;
   isRTL: boolean;
@@ -52,18 +46,18 @@ function CalendarPicker({
   const prevMonth = () => {
     const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
     if (isCurrentMonth) return;
-    if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
-    else setViewMonth(m => m - 1);
+    if (viewMonth === 0) { setViewYear((y) => y - 1); setViewMonth(11); }
+    else setViewMonth((m) => m - 1);
   };
 
   const nextMonth = () => {
     const maxDate = new Date(today);
     maxDate.setMonth(today.getMonth() + 3);
-    const isAtMax = viewYear > maxDate.getFullYear() ||
+    const atMax = viewYear > maxDate.getFullYear() ||
       (viewYear === maxDate.getFullYear() && viewMonth >= maxDate.getMonth());
-    if (isAtMax) return;
-    if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0); }
-    else setViewMonth(m => m + 1);
+    if (atMax) return;
+    if (viewMonth === 11) { setViewYear((y) => y + 1); setViewMonth(0); }
+    else setViewMonth((m) => m + 1);
   };
 
   const canGoPrev = !(viewYear === today.getFullYear() && viewMonth === today.getMonth());
@@ -72,7 +66,6 @@ function CalendarPicker({
   const canGoNext = !(viewYear > maxDate.getFullYear() ||
     (viewYear === maxDate.getFullYear() && viewMonth >= maxDate.getMonth()));
 
-  // Build calendar grid
   const firstDow = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
 
@@ -84,7 +77,6 @@ function CalendarPicker({
     ? ["أح", "إث", "ثل", "أر", "خم", "جم", "سب"]
     : ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-  // Cells: leading empty + days
   const cells: Array<{ day: number; date: Date } | null> = [
     ...Array(firstDow).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => {
@@ -119,18 +111,13 @@ function CalendarPicker({
         </button>
       </div>
 
-      {/* Day-of-week headers */}
+      {/* Day headers */}
       <div className="grid grid-cols-7 mb-1">
         {dayHeaders.map((h, i) => {
           const dayKey = DAY_KEYS[i];
-          const hasEnabledSlots = availability[dayKey]?.enabled;
+          const active = availability[dayKey]?.enabled;
           return (
-            <div
-              key={h}
-              className={`text-center text-[11px] py-1.5 font-medium ${
-                hasEnabledSlots ? "text-primary/70" : "text-muted-foreground/30"
-              }`}
-            >
+            <div key={h} className={`text-center text-[11px] py-1.5 font-medium ${active ? "text-primary/70" : "text-muted-foreground/30"}`}>
               {h}
             </div>
           );
@@ -143,8 +130,8 @@ function CalendarPicker({
           if (!cell) return <div key={idx} />;
           const available = isAvailableDate(cell.date);
           const isPast = cell.date < today;
-          const isSelected = isSameDay(cell.date, selectedDate);
-          const isToday = isSameDay(cell.date, toISO(today));
+          const isSelected = toISO(cell.date) === selectedDate;
+          const isToday = toISO(cell.date) === toISO(today);
 
           return (
             <button
@@ -200,7 +187,7 @@ function TimeSlotPicker({
   onSelect: (t: string) => void;
   isRTL: boolean;
 }) {
-  if (slots.length === 0)
+  if (!slots.length)
     return (
       <p className="text-xs text-amber-400/70 italic py-2">
         {isRTL ? "لا توجد مواعيد متاحة لهذا اليوم." : "No slots available for this day."}
@@ -237,7 +224,7 @@ export default function BookingPage() {
   const [, params] = useRoute("/booking/:courseId");
   const courseId = params?.courseId ?? "";
 
-  const [course, setCourse] = useState<OnlineCourse | null>(null);
+  const [course, setCourse] = useState<ApiOnlineCourse | null>(null);
   const [loadingCourse, setLoadingCourse] = useState(true);
   const [step, setStep] = useState<Step>(1);
 
@@ -245,31 +232,25 @@ export default function BookingPage() {
   const [userEmail, setUserEmail] = useState("");
   const [userWhatsapp, setUserWhatsapp] = useState("");
   const [issueDescription, setIssueDescription] = useState("");
-
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!courseId || !db) { setLoadingCourse(false); return; }
-    getDoc(doc(db, "online_courses", courseId))
-      .then((snap) => {
-        if (snap.exists()) setCourse({ id: snap.id, ...(snap.data() as Omit<OnlineCourse, "id">) });
-      })
+    if (!courseId) { setLoadingCourse(false); return; }
+    apiGetOnlineCourse(courseId)
+      .then((data) => setCourse(data))
+      .catch(() => setCourse(null))
       .finally(() => setLoadingCourse(false));
   }, [courseId]);
 
-  // Time slots for selected date
   const timeSlotsForDate: string[] = (() => {
     if (!selectedDate || !course) return [];
     const dow = new Date(selectedDate + "T00:00:00").getDay();
-    const key = DAY_KEYS[dow];
-    return course.availability[key]?.slots ?? [];
+    return course.availability[DAY_KEYS[dow]]?.slots ?? [];
   })();
 
-  // Reset time when date changes
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
     setSelectedTime("");
@@ -279,20 +260,15 @@ export default function BookingPage() {
     setPaying(true);
     setError("");
     try {
-      const res = await fetch("/api/checkout/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch("/api/checkout/session", { method: "POST" });
       if (!res.ok) throw new Error("checkout-failed");
-      const data = (await res.json()) as { url?: string; error?: string };
-      if (!data.url) throw new Error("no-url");
+      const data = (await res.json()) as { url?: string };
+      const sessionId = data.url
+        ? new URL(data.url).searchParams.get("session_id") ?? `demo_${Date.now()}`
+        : `demo_${Date.now()}`;
 
-      const urlObj = new URL(data.url);
-      const sessionId = urlObj.searchParams.get("session_id") ?? `demo_${Date.now()}`;
-
-      await addBooking({
-        courseId,
-        courseTitle: course?.title ?? "",
+      await apiCreateBooking({
+        courseId, courseTitle: course?.title ?? "",
         courseType: "online",
         userName, userEmail, userWhatsapp, issueDescription,
         selectedDate, selectedTime,
@@ -316,7 +292,6 @@ export default function BookingPage() {
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 
-  // ── Loading ──
   if (loadingCourse)
     return (
       <div className="min-h-screen bg-[#0a060f] flex items-center justify-center">
@@ -329,9 +304,7 @@ export default function BookingPage() {
       <div className="min-h-screen bg-[#0a060f] flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-muted-foreground mb-4">{isRTL ? "لم يتم العثور على الجلسة." : "Session not found."}</p>
-          <button onClick={() => navigate("/")} className="text-primary text-sm hover:underline">
-            {isRTL ? "العودة للرئيسية" : "Back to Home"}
-          </button>
+          <button onClick={() => navigate("/")} className="text-primary text-sm hover:underline">{isRTL ? "العودة للرئيسية" : "Back to Home"}</button>
         </div>
       </div>
     );
@@ -339,13 +312,9 @@ export default function BookingPage() {
   if (course.status === "unavailable")
     return (
       <div className="min-h-screen bg-[#0a060f] flex items-center justify-center px-4">
-        <div className="text-center max-w-sm">
-          <p className="text-lg text-foreground/80 mb-2">
-            {isRTL ? "هذه الجلسة غير متاحة حالياً." : "This session is currently unavailable."}
-          </p>
-          <button onClick={() => navigate("/")} className="text-primary text-sm hover:underline mt-4 block">
-            {isRTL ? "العودة للرئيسية" : "Back to Home"}
-          </button>
+        <div className="text-center">
+          <p className="text-foreground/80 mb-4">{isRTL ? "هذه الجلسة غير متاحة حالياً." : "This session is currently unavailable."}</p>
+          <button onClick={() => navigate("/")} className="text-primary text-sm hover:underline">{isRTL ? "العودة" : "Back"}</button>
         </div>
       </div>
     );
@@ -361,9 +330,8 @@ export default function BookingPage() {
     <div className="min-h-screen bg-[#0a060f] flex flex-col" dir={isRTL ? "rtl" : "ltr"}>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-secondary/8 rounded-full blur-[160px] pointer-events-none" />
 
-      <div className="flex-1 flex flex-col items-center justify-start px-4 py-10">
+      <div className="flex-1 flex flex-col items-center px-4 py-10">
         <div className="w-full max-w-lg">
-          {/* Back */}
           <button
             onClick={() => navigate("/")}
             className="flex items-center gap-1.5 text-xs text-muted-foreground/50 hover:text-primary transition-colors mb-8 uppercase tracking-widest"
@@ -372,13 +340,8 @@ export default function BookingPage() {
             {isRTL ? "الرئيسية" : "Home"}
           </button>
 
-          {/* Logo + title */}
           <div className="text-center mb-8">
-            <img
-              src="/logo.png"
-              alt="BAH"
-              className="h-14 object-contain mx-auto mb-5 drop-shadow-[0_0_12px_rgba(212,175,55,0.4)]"
-            />
+            <img src="/logo.png" alt="BAH" className="h-14 object-contain mx-auto mb-5 drop-shadow-[0_0_12px_rgba(212,175,55,0.4)]" />
             <h1 className="font-serif text-2xl md:text-3xl text-foreground mb-1">{course.title}</h1>
             <p className="text-muted-foreground text-sm">{isRTL ? "احجز جلستك" : "Book Your Session"}</p>
           </div>
@@ -388,24 +351,12 @@ export default function BookingPage() {
             {steps.map(({ n, label }, i) => (
               <div key={n} className="flex items-center flex-1 last:flex-none">
                 <div className="flex flex-col items-center gap-1">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
-                      step > n
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : step === n
-                        ? "border-primary text-primary bg-primary/10"
-                        : "border-white/15 text-muted-foreground/30"
-                    }`}
-                  >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${step > n ? "bg-primary border-primary text-primary-foreground" : step === n ? "border-primary text-primary bg-primary/10" : "border-white/15 text-muted-foreground/30"}`}>
                     {step > n ? "✓" : n}
                   </div>
-                  <span className={`text-[10px] uppercase tracking-widest hidden sm:block ${step === n ? "text-primary" : "text-muted-foreground/30"}`}>
-                    {label}
-                  </span>
+                  <span className={`text-[10px] uppercase tracking-widest hidden sm:block ${step === n ? "text-primary" : "text-muted-foreground/30"}`}>{label}</span>
                 </div>
-                {i < steps.length - 1 && (
-                  <div className={`flex-1 h-[1px] mx-2 transition-colors ${step > n ? "bg-primary/60" : "bg-white/8"}`} />
-                )}
+                {i < steps.length - 1 && <div className={`flex-1 h-[1px] mx-2 transition-colors ${step > n ? "bg-primary/60" : "bg-white/8"}`} />}
               </div>
             ))}
           </div>
@@ -415,13 +366,10 @@ export default function BookingPage() {
             <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
 
             <AnimatePresence mode="wait">
-              {/* ── Step 1: Personal info ── */}
+              {/* Step 1 */}
               {step === 1 && (
                 <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="p-6 space-y-4">
-                  <h3 className="text-xs uppercase tracking-widest text-primary/70 mb-5">
-                    {isRTL ? "معلوماتك الشخصية" : "Personal Information"}
-                  </h3>
-
+                  <h3 className="text-xs uppercase tracking-widest text-primary/70 mb-5">{isRTL ? "معلوماتك الشخصية" : "Personal Information"}</h3>
                   {[
                     { icon: <User size={13} />, label: isRTL ? "الاسم الكامل" : "Full Name", value: userName, set: setUserName, type: "text" },
                     { icon: <Mail size={13} />, label: isRTL ? "البريد الإلكتروني" : "Email", value: userEmail, set: setUserEmail, type: "email" },
@@ -429,103 +377,45 @@ export default function BookingPage() {
                   ].map(({ icon, label, value, set, type }) => (
                     <div key={label}>
                       <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">{icon}{label}</label>
-                      <input
-                        type={type}
-                        value={value}
-                        onChange={(e) => set(e.target.value)}
-                        className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/30"
-                      />
+                      <input type={type} value={value} onChange={(e) => set(e.target.value)} className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50" />
                     </div>
                   ))}
-
                   <div>
-                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
-                      <MessageSquare size={13} />
-                      {isRTL ? "وصف حالتك" : "Describe your situation"}
-                    </label>
-                    <textarea
-                      value={issueDescription}
-                      onChange={(e) => setIssueDescription(e.target.value)}
-                      rows={3}
-                      placeholder={isRTL ? "أخبرينا عن ما تمر به..." : "Tell us what you're going through..."}
-                      className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/30 resize-none"
-                    />
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5"><MessageSquare size={13} />{isRTL ? "وصف حالتك" : "Describe your situation"}</label>
+                    <textarea value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)} rows={3} placeholder={isRTL ? "أخبرينا عن ما تمر به..." : "Tell us what you're going through..."} className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/30 resize-none" />
                   </div>
-
-                  <button
-                    onClick={() => { if (userName && userEmail && userWhatsapp) setStep(2); }}
-                    disabled={!userName || !userEmail || !userWhatsapp}
-                    className="w-full py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 transition-colors mt-2"
-                  >
+                  <button onClick={() => { if (userName && userEmail && userWhatsapp) setStep(2); }} disabled={!userName || !userEmail || !userWhatsapp} className="w-full py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 transition-colors mt-2">
                     {isRTL ? "التالي ←" : "Next →"}
                   </button>
                 </motion.div>
               )}
 
-              {/* ── Step 2: Calendar + Time Slot ── */}
+              {/* Step 2 */}
               {step === 2 && (
                 <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="p-6 space-y-6">
-                  <h3 className="text-xs uppercase tracking-widest text-primary/70">
-                    {isRTL ? "اختر التاريخ والوقت" : "Select Date & Time"}
-                  </h3>
-
-                  {/* Calendar */}
-                  <CalendarPicker
-                    availability={course.availability}
-                    selectedDate={selectedDate}
-                    onSelect={handleDateSelect}
-                    isRTL={isRTL}
-                  />
-
-                  {/* Time slots — only show after date selected */}
+                  <h3 className="text-xs uppercase tracking-widest text-primary/70">{isRTL ? "اختر التاريخ والوقت" : "Select Date & Time"}</h3>
+                  <CalendarPicker availability={course.availability} selectedDate={selectedDate} onSelect={handleDateSelect} isRTL={isRTL} />
                   <AnimatePresence>
                     {selectedDate && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                         <div className="border-t border-white/8 pt-5">
-                          <p className="text-xs text-muted-foreground mb-3">
-                            {isRTL ? `المواعيد المتاحة ليوم ${selectedDate}` : `Available times for ${selectedDate}`}
-                          </p>
-                          <TimeSlotPicker
-                            slots={timeSlotsForDate}
-                            selected={selectedTime}
-                            onSelect={setSelectedTime}
-                            isRTL={isRTL}
-                          />
+                          <p className="text-xs text-muted-foreground mb-3">{isRTL ? `المواعيد المتاحة ليوم ${selectedDate}` : `Available times for ${selectedDate}`}</p>
+                          <TimeSlotPicker slots={timeSlotsForDate} selected={selectedTime} onSelect={setSelectedTime} isRTL={isRTL} />
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
-
                   <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => setStep(1)}
-                      className="flex-1 py-3 border border-white/10 text-muted-foreground text-sm hover:border-white/20 transition-colors"
-                    >
-                      {isRTL ? "→ السابق" : "← Back"}
-                    </button>
-                    <button
-                      onClick={() => { if (selectedDate && selectedTime) setStep(3); }}
-                      disabled={!selectedDate || !selectedTime}
-                      className="flex-1 py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 transition-colors"
-                    >
-                      {isRTL ? "التالي ←" : "Next →"}
-                    </button>
+                    <button onClick={() => setStep(1)} className="flex-1 py-3 border border-white/10 text-muted-foreground text-sm hover:border-white/20 transition-colors">{isRTL ? "→ السابق" : "← Back"}</button>
+                    <button onClick={() => { if (selectedDate && selectedTime) setStep(3); }} disabled={!selectedDate || !selectedTime} className="flex-1 py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 transition-colors">{isRTL ? "التالي ←" : "Next →"}</button>
                   </div>
                 </motion.div>
               )}
 
-              {/* ── Step 3: Review & Pay ── */}
+              {/* Step 3 */}
               {step === 3 && (
                 <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="p-6 space-y-5">
-                  <h3 className="text-xs uppercase tracking-widest text-primary/70">
-                    {isRTL ? "مراجعة وتأكيد الدفع" : "Review & Confirm Payment"}
-                  </h3>
-
+                  <h3 className="text-xs uppercase tracking-widest text-primary/70">{isRTL ? "مراجعة وتأكيد الدفع" : "Review & Confirm Payment"}</h3>
                   <div className="bg-black/20 border border-white/8 divide-y divide-white/5">
                     {[
                       [isRTL ? "الجلسة" : "Session", course.title],
@@ -541,24 +431,14 @@ export default function BookingPage() {
                       </div>
                     ))}
                     <div className="flex justify-between items-center px-4 py-3">
-                      <span className="text-muted-foreground font-medium text-sm">
-                        {isRTL ? "الإجمالي" : "Total"}
-                      </span>
+                      <span className="text-muted-foreground font-medium text-sm">{isRTL ? "الإجمالي" : "Total"}</span>
                       <span className="text-primary font-semibold text-xl">${course.price.toFixed(2)}</span>
                     </div>
                   </div>
-
                   {error && <p className="text-red-400 text-xs text-center">{error}</p>}
-
                   <div className="flex gap-3">
-                    <button onClick={() => setStep(2)} className="flex-1 py-3 border border-white/10 text-muted-foreground text-sm hover:border-white/20 transition-colors">
-                      {isRTL ? "→ السابق" : "← Back"}
-                    </button>
-                    <button
-                      onClick={handlePay}
-                      disabled={paying}
-                      className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-60 transition-colors"
-                    >
+                    <button onClick={() => setStep(2)} className="flex-1 py-3 border border-white/10 text-muted-foreground text-sm hover:border-white/20 transition-colors">{isRTL ? "→ السابق" : "← Back"}</button>
+                    <button onClick={handlePay} disabled={paying} className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-60 transition-colors">
                       {paying && <Loader2 size={14} className="animate-spin" />}
                       {paying ? (isRTL ? "جاري..." : "Processing...") : (isRTL ? "تأكيد الدفع" : "Confirm & Pay")}
                     </button>
@@ -566,29 +446,21 @@ export default function BookingPage() {
                 </motion.div>
               )}
 
-              {/* ── Step 4: Confirmation ── */}
+              {/* Step 4 */}
               {step === 4 && (
                 <motion.div key="s4" initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }} className="p-8 text-center space-y-5">
                   <div className="w-16 h-16 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center mx-auto">
                     <CheckCircle2 size={32} className="text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-serif text-2xl text-foreground mb-2">
-                      {isRTL ? "شكراً على تسجيلك!" : "Thank You!"}
-                    </h3>
-                    <p className="text-muted-foreground leading-relaxed text-sm">
-                      {isRTL
-                        ? "شكراً على اشتراكك، سنتواصل معك قريباً."
-                        : "Thank you for your subscription, we will contact you shortly."}
-                    </p>
+                    <h3 className="font-serif text-2xl text-foreground mb-2">{isRTL ? "شكراً على تسجيلك!" : "Thank You!"}</h3>
+                    <p className="text-muted-foreground leading-relaxed text-sm">{isRTL ? "شكراً على اشتراكك، سنتواصل معك قريباً." : "Thank you for your subscription, we will contact you shortly."}</p>
                   </div>
                   <div className="bg-primary/5 border border-primary/15 p-4 text-xs text-muted-foreground space-y-1 text-start">
                     <p><span className="text-primary/70">{isRTL ? "الجلسة:" : "Session:"}</span> {course.title}</p>
                     <p><span className="text-primary/70">{isRTL ? "الموعد:" : "Booked:"}</span> {selectedDate} — {selectedTime}</p>
                   </div>
-                  <button onClick={() => navigate("/")} className="text-sm text-primary hover:underline">
-                    {isRTL ? "العودة للرئيسية" : "Back to Home"}
-                  </button>
+                  <button onClick={() => navigate("/")} className="text-sm text-primary hover:underline">{isRTL ? "العودة للرئيسية" : "Back to Home"}</button>
                 </motion.div>
               )}
             </AnimatePresence>

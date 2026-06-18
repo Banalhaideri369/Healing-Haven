@@ -3,13 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, ChevronDown, ChevronUp, Loader2, Video } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { type Availability } from "@/lib/courses";
 import {
-  subscribeOnlineCourses,
-  updateOnlineCourse,
-  deleteOnlineCourse,
-  type OnlineCourse,
-  type Availability,
-} from "@/lib/courses";
+  apiGetOnlineCourses,
+  apiUpdateOnlineCourse,
+  apiDeleteOnlineCourse,
+  type ApiOnlineCourse,
+} from "@/lib/api";
 import { CourseFormModal } from "./CourseFormModal";
 import { AvailabilityEditor } from "./AvailabilityEditor";
 
@@ -22,7 +22,7 @@ export function OnlineCoursesTab() {
   const { t } = useLanguage();
   const a = t.admin;
 
-  const [courses, setCourses] = useState<OnlineCourse[]>([]);
+  const [courses, setCourses] = useState<ApiOnlineCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -30,39 +30,56 @@ export function OnlineCoursesTab() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsub = subscribeOnlineCourses((data) => {
+  const load = useCallback(async () => {
+    try {
+      const data = await apiGetOnlineCourses();
       setCourses(data);
+    } catch {
+      // keep current state on error
+    } finally {
       setLoading(false);
-    });
-    return unsub;
+    }
   }, []);
 
-  const handleStatusToggle = async (course: OnlineCourse) => {
+  useEffect(() => {
+    void load();
+    const timer = setInterval(() => void load(), 30_000);
+    return () => clearInterval(timer);
+  }, [load]);
+
+  const handleStatusToggle = async (course: ApiOnlineCourse) => {
     const next = course.status === "available" ? "unavailable" : "available";
+    setCourses((prev) => prev.map((c) => (c.id === course.id ? { ...c, status: next as "available" | "unavailable" } : c)));
     try {
-      await updateOnlineCourse(course.id, { status: next });
+      await apiUpdateOnlineCourse(course.id, { status: next });
       toast.success(a.statusUpdated);
     } catch {
+      setCourses((prev) => prev.map((c) => (c.id === course.id ? { ...c, status: course.status } : c)));
       toast.error(a.statusError);
     }
   };
 
-  const handleAvailabilityChange = useCallback(async (id: string, availability: Availability) => {
-    setSavingId(id);
-    try {
-      await updateOnlineCourse(id, { availability });
-    } catch {
-      toast.error(a.availabilityError);
-    } finally {
-      setSavingId(null);
-    }
-  }, [a]);
+  const handleAvailabilityChange = useCallback(
+    async (id: string, availability: Availability) => {
+      setSavingId(id);
+      setCourses((prev) => prev.map((c) => (c.id === id ? { ...c, availability } : c)));
+      try {
+        await apiUpdateOnlineCourse(id, { availability });
+      } catch {
+        toast.error(a.availabilityError);
+        void load(); // reload to restore state
+      } finally {
+        setSavingId(null);
+      }
+    },
+    [a, load],
+  );
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      await deleteOnlineCourse(id);
+      await apiDeleteOnlineCourse(id);
+      setCourses((prev) => prev.filter((c) => c.id !== id));
       toast.success(a.deletedSuccess);
       if (expandedId === id) setExpandedId(null);
     } catch {
@@ -78,7 +95,9 @@ export function OnlineCoursesTab() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-lg text-foreground font-medium">{a.onlineCourses}</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{a.courseCount(courses.length)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {loading ? "..." : a.courseCount(courses.length)}
+          </p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
@@ -121,7 +140,6 @@ export function OnlineCoursesTab() {
               <div className="h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
               <div className="flex items-center gap-4 p-5">
-                {/* Thumbnail */}
                 <div className="w-20 h-14 flex-shrink-0 bg-black/30 overflow-hidden">
                   {course.image ? (
                     <img
@@ -137,7 +155,6 @@ export function OnlineCoursesTab() {
                   )}
                 </div>
 
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <h4 className="font-serif text-base text-foreground truncate">{course.title}</h4>
                   {course.description && (
@@ -148,7 +165,6 @@ export function OnlineCoursesTab() {
                   </p>
                 </div>
 
-                {/* Status toggle */}
                 <div className="flex flex-col items-center gap-1">
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{a.statusLabel}</span>
                   <button
@@ -164,12 +180,15 @@ export function OnlineCoursesTab() {
                       }`}
                     />
                   </button>
-                  <span className={`text-[10px] font-medium ${isAvailable ? "text-emerald-400" : "text-muted-foreground/50"}`}>
+                  <span
+                    className={`text-[10px] font-medium ${
+                      isAvailable ? "text-emerald-400" : "text-muted-foreground/50"
+                    }`}
+                  >
                     {isAvailable ? a.available : a.unavailable}
                   </span>
                 </div>
 
-                {/* Expand / delete */}
                 <div className="flex flex-col items-center gap-2">
                   <button
                     onClick={() => setExpandedId(isExpanded ? null : course.id)}
@@ -186,7 +205,11 @@ export function OnlineCoursesTab() {
                         disabled={deletingId === course.id}
                         className="text-[10px] text-red-400 border border-red-400/30 px-2 py-1 hover:bg-red-400/10 transition-colors"
                       >
-                        {deletingId === course.id ? <Loader2 size={10} className="animate-spin" /> : a.deleteYes}
+                        {deletingId === course.id ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : (
+                          a.deleteYes
+                        )}
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
@@ -206,7 +229,6 @@ export function OnlineCoursesTab() {
                 </div>
               </div>
 
-              {/* Availability panel */}
               <AnimatePresence>
                 {isExpanded && (
                   <motion.div
@@ -229,7 +251,7 @@ export function OnlineCoursesTab() {
                       </div>
                       <AvailabilityEditor
                         availability={course.availability}
-                        onChange={(updated) => handleAvailabilityChange(course.id, updated)}
+                        onChange={(updated) => void handleAvailabilityChange(course.id, updated)}
                         disabled={!isAvailable}
                       />
                       {!isAvailable && (
@@ -248,7 +270,7 @@ export function OnlineCoursesTab() {
         <CourseFormModal
           mode="online"
           onClose={() => setShowAdd(false)}
-          onSaved={() => setShowAdd(false)}
+          onSaved={() => { void load(); setShowAdd(false); }}
         />
       )}
     </div>

@@ -2,11 +2,8 @@ import { useState } from "react";
 import { X, Loader2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
-import {
-  addRecordedCourse,
-  addOnlineCourse,
-  DEFAULT_AVAILABILITY,
-} from "@/lib/courses";
+import { DEFAULT_AVAILABILITY } from "@/lib/courses";
+import { apiCreateRecordedCourse, apiCreateOnlineCourse } from "@/lib/api";
 
 type Mode = "recorded" | "online";
 
@@ -41,14 +38,14 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
     setSaving(true);
     try {
       if (mode === "recorded") {
-        await addRecordedCourse({
+        await apiCreateRecordedCourse({
           title: title.trim(), description: description.trim(),
           image: image.trim(), telegramLink: telegramLink.trim(),
           price, discountEnabled, discountPercent,
         });
         toast.success(a.saveSuccessRecorded);
       } else {
-        await addOnlineCourse({
+        await apiCreateOnlineCourse({
           title: title.trim(), description: description.trim(),
           image: image.trim(), price: sessionPrice,
           status: "available", availability: DEFAULT_AVAILABILITY,
@@ -66,20 +63,15 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
   };
 
   return (
-    /* ── Full-screen overlay ── */
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
       dir={isRTL ? "rtl" : "ltr"}
     >
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/75 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal — bottom-sheet on mobile, centered dialog on sm+ */}
+      {/* Modal — bottom-sheet on mobile, centered on sm+ */}
       <div className="relative w-full sm:w-[560px] sm:mx-4 bg-[#0f0a12] border-t sm:border border-primary/30 shadow-[0_-8px_60px_rgba(212,175,55,0.12)] sm:shadow-[0_0_80px_rgba(212,175,55,0.1)] rounded-t-2xl sm:rounded-none flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
-        {/* Gold top line */}
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/80 to-transparent rounded-t-2xl sm:rounded-none" />
 
         {/* Mobile drag handle */}
@@ -101,10 +93,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
         </div>
 
         {/* Scrollable form body */}
-        <form
-          onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5 space-y-4"
-        >
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5 space-y-4">
           {/* Image URL */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
@@ -162,7 +151,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
             />
           </div>
 
-          {/* ── Recorded-only ── */}
+          {/* Recorded-only fields */}
           {mode === "recorded" && (
             <>
               <div>
@@ -192,7 +181,6 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                 />
               </div>
 
-              {/* Discount toggle */}
               <div className="border border-white/8 p-4 rounded-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-foreground">{a.fieldDiscount}</span>
@@ -235,7 +223,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
             </>
           )}
 
-          {/* ── Online-only ── */}
+          {/* Online-only fields */}
           {mode === "online" && (
             <div>
               <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
@@ -253,11 +241,10 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
             </div>
           )}
 
-          {/* Spacer so content isn't hidden behind sticky footer on mobile */}
           <div className="h-2" />
         </form>
 
-        {/* Sticky footer actions */}
+        {/* Sticky footer */}
         <div className="flex items-center justify-end gap-3 px-5 sm:px-6 py-4 border-t border-white/8 flex-shrink-0 bg-[#0f0a12]">
           <button
             type="button"
@@ -267,8 +254,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
             {a.cancel}
           </button>
           <button
-            form="course-form"
-            type="submit"
+            type="button"
             onClick={handleSubmit}
             disabled={saving}
             className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wider hover:bg-primary/90 disabled:opacity-60 transition-colors rounded-sm"
@@ -278,7 +264,6 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
           </button>
         </div>
 
-        {/* Bottom gold line */}
         <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
       </div>
     </div>

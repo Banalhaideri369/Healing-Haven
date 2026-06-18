@@ -1,20 +1,63 @@
-// Export your models here. Add one export per file
-// export * from "./posts";
-//
-// Each model/table should ideally be split into different files.
-// Each model/table should define a Drizzle table, insert schema, and types:
-//
-//   import { pgTable, text, serial } from "drizzle-orm/pg-core";
-//   import { createInsertSchema } from "drizzle-zod";
-//   import { z } from "zod/v4";
-//
-//   export const postsTable = pgTable("posts", {
-//     id: serial("id").primaryKey(),
-//     title: text("title").notNull(),
-//   });
-//
-//   export const insertPostSchema = createInsertSchema(postsTable).omit({ id: true });
-//   export type InsertPost = z.infer<typeof insertPostSchema>;
-//   export type Post = typeof postsTable.$inferSelect;
+import {
+  pgTable,
+  uuid,
+  text,
+  boolean,
+  integer,
+  doublePrecision,
+  timestamp,
+  jsonb,
+} from "drizzle-orm/pg-core";
 
-export {}
+// ─── Recorded Courses ─────────────────────────────────────────────────────────
+
+export const recordedCoursesTable = pgTable("recorded_courses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  image: text("image").notNull().default(""),
+  telegramLink: text("telegram_link").notNull().default(""),
+  price: doublePrecision("price").notNull().default(0),
+  discountEnabled: boolean("discount_enabled").notNull().default(false),
+  discountPercent: integer("discount_percent").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type RecordedCourseRow = typeof recordedCoursesTable.$inferSelect;
+
+// ─── Online Courses ───────────────────────────────────────────────────────────
+
+export const onlineCoursesTable = pgTable("online_courses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  image: text("image").notNull().default(""),
+  price: doublePrecision("price").notNull().default(0),
+  status: text("status").notNull().default("available"),
+  availability: jsonb("availability").notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type OnlineCourseRow = typeof onlineCoursesTable.$inferSelect;
+
+// ─── Bookings ─────────────────────────────────────────────────────────────────
+
+export const bookingsTable = pgTable("bookings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  courseId: text("course_id").notNull(),
+  courseTitle: text("course_title").notNull(),
+  courseType: text("course_type").notNull(),
+  userName: text("user_name").notNull(),
+  userEmail: text("user_email").notNull(),
+  userWhatsapp: text("user_whatsapp").notNull(),
+  issueDescription: text("issue_description").notNull().default(""),
+  selectedDate: text("selected_date"),
+  selectedTime: text("selected_time"),
+  paymentStatus: text("payment_status").notNull().default("pending"),
+  paymentSessionId: text("payment_session_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type BookingRow = typeof bookingsTable.$inferSelect;

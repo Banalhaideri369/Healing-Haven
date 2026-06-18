@@ -1,15 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Send, Tag, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Send, Tag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { finalPrice } from "@/lib/courses";
 import {
-  subscribeRecordedCourses,
-  deleteRecordedCourse,
-  seedDefaultWorkshop,
-  finalPrice,
-  type RecordedCourse,
-} from "@/lib/courses";
+  apiGetRecordedCourses,
+  apiDeleteRecordedCourse,
+  apiSeedWorkshop,
+  type ApiRecordedCourse,
+} from "@/lib/api";
 import { CourseFormModal } from "./CourseFormModal";
 
 const fadeUp = {
@@ -18,45 +18,47 @@ const fadeUp = {
 };
 
 export function RecordedCoursesTab() {
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const a = t.admin;
 
-  const [courses, setCourses] = useState<RecordedCourse[]>([]);
+  const [courses, setCourses] = useState<ApiRecordedCourse[]>([]);
   const [loading, setLoading] = useState(true);
-  const [firestoreError, setFirestoreError] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const [seeding, setSeeding] = useState(false);
   const seededRef = useRef(false);
 
-  useEffect(() => {
-    const unsub = subscribeRecordedCourses(
-      async (data) => {
-        setCourses(data);
-        setLoading(false);
-        setFirestoreError(false);
-        // Auto-seed the existing workshop if collection is empty and not yet tried
-        if (data.length === 0 && !seededRef.current) {
-          seededRef.current = true;
-          setSeeding(true);
-          const added = await seedDefaultWorkshop();
-          setSeeding(false);
-          if (added) toast.success("تم إضافة الورشة الموجودة تلقائياً ✓");
+  const load = useCallback(async () => {
+    try {
+      const data = await apiGetRecordedCourses();
+      setCourses(data);
+      if (data.length === 0 && !seededRef.current) {
+        seededRef.current = true;
+        const didSeed = await apiSeedWorkshop();
+        if (didSeed) {
+          const fresh = await apiGetRecordedCourses();
+          setCourses(fresh);
+          toast.success("تم إضافة الورشة الموجودة تلقائياً ✓");
         }
-      },
-      () => {
-        setLoading(false);
-        setFirestoreError(true);
-      },
-    );
-    return unsub;
+      }
+    } catch {
+      // silently keep old data
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void load();
+    const t = setInterval(() => void load(), 30_000);
+    return () => clearInterval(t);
+  }, [load]);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      await deleteRecordedCourse(id);
+      await apiDeleteRecordedCourse(id);
+      setCourses((prev) => prev.filter((c) => c.id !== id));
       toast.success(a.deletedSuccess);
     } catch {
       toast.error(a.deleteError);
@@ -68,12 +70,11 @@ export function RecordedCoursesTab() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h3 className="text-lg text-foreground font-medium">{a.recordedCourses}</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {loading || seeding ? "..." : a.courseCount(courses.length)}
+            {loading ? "..." : a.courseCount(courses.length)}
           </p>
         </div>
         <button
@@ -85,37 +86,13 @@ export function RecordedCoursesTab() {
         </button>
       </div>
 
-      {/* Firestore permission error */}
-      {firestoreError && (
-        <div className="flex items-start gap-3 p-4 bg-red-500/8 border border-red-500/25 mb-6">
-          <AlertTriangle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm text-red-400 font-medium">
-              {lang === "ar" ? "خطأ في صلاحيات Firestore" : "Firestore Permission Error"}
-            </p>
-            <p className="text-xs text-red-400/70 mt-0.5">
-              {lang === "ar"
-                ? "يرجى نشر قواعد Firestore عبر Firebase CLI: firebase deploy --only firestore:rules"
-                : "Please deploy Firestore rules via Firebase CLI: firebase deploy --only firestore:rules"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Loading / seeding */}
-      {(loading || seeding) && (
-        <div className="flex flex-col items-center justify-center py-20 gap-3">
+      {loading && (
+        <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin text-primary/50" />
-          {seeding && (
-            <p className="text-xs text-muted-foreground/60">
-              {lang === "ar" ? "جاري تهيئة الورشة..." : "Initializing workshop..."}
-            </p>
-          )}
         </div>
       )}
 
-      {/* Empty state */}
-      {!loading && !seeding && courses.length === 0 && !firestoreError && (
+      {!loading && courses.length === 0 && (
         <div className="text-center py-20 border border-dashed border-white/8">
           <p className="text-muted-foreground/50 text-sm">{a.noCourses}</p>
           <button onClick={() => setShowAdd(true)} className="mt-3 text-primary text-sm hover:underline">
@@ -124,7 +101,6 @@ export function RecordedCoursesTab() {
         </div>
       )}
 
-      {/* Course grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {courses.map((course, i) => {
           const fp = finalPrice(course);
@@ -166,7 +142,9 @@ export function RecordedCoursesTab() {
                 <div className="flex items-baseline gap-2 mb-4">
                   {hasDiscount ? (
                     <>
-                      <span className="text-muted-foreground line-through text-sm">${course.price.toFixed(2)}</span>
+                      <span className="text-muted-foreground line-through text-sm">
+                        ${course.price.toFixed(2)}
+                      </span>
                       <span className="text-primary font-semibold text-xl">${fp.toFixed(2)}</span>
                       <span className="text-xs bg-primary/15 text-primary px-2 py-0.5 border border-primary/20">
                         -{course.discountPercent}%
@@ -198,7 +176,11 @@ export function RecordedCoursesTab() {
                         disabled={deletingId === course.id}
                         className="text-xs text-red-400 border border-red-400/30 px-2 py-1 hover:bg-red-400/10 transition-colors disabled:opacity-50"
                       >
-                        {deletingId === course.id ? <Loader2 size={11} className="animate-spin" /> : a.deleteYes}
+                        {deletingId === course.id ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          a.deleteYes
+                        )}
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
@@ -228,7 +210,7 @@ export function RecordedCoursesTab() {
         <CourseFormModal
           mode="recorded"
           onClose={() => setShowAdd(false)}
-          onSaved={() => setShowAdd(false)}
+          onSaved={() => { void load(); setShowAdd(false); }}
         />
       )}
     </div>
