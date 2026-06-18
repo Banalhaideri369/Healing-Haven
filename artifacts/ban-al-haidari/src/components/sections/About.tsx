@@ -19,7 +19,7 @@ export function About() {
             transition={{ duration: 1 }}
             className="w-full lg:w-2/5 relative flex-shrink-0"
           >
-            <div className="relative w-full max-w-sm mx-auto">
+            <div className="relative w-full max-w-sm lg:max-w-none mx-auto">
               {/* Decorative border offset */}
               <div className="absolute inset-0 border border-primary/30 translate-x-4 translate-y-4 rounded-sm" />
               {/* Glow behind photo */}

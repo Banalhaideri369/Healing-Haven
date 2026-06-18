@@ -22,15 +22,19 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [telegramLink, setTelegramLink] = useState("");
-  const [price, setPrice] = useState<number>(0);
+  const [price, setPrice] = useState<string>("");
   const [discountEnabled, setDiscountEnabled] = useState(false);
-  const [discountPercent, setDiscountPercent] = useState<number>(10);
-  const [sessionPrice, setSessionPrice] = useState<number>(0);
+  const [discountPercent, setDiscountPercent] = useState<string>("10");
+  const [sessionPrice, setSessionPrice] = useState<string>("");
+
+  const parsedPrice = parseFloat(price) || 0;
+  const parsedDiscount = parseFloat(discountPercent) || 0;
+  const parsedSessionPrice = parseFloat(sessionPrice) || 0;
 
   const computedFinalPrice =
-    discountEnabled && discountPercent > 0
-      ? Math.round(price * (1 - discountPercent / 100) * 100) / 100
-      : price;
+    discountEnabled && parsedDiscount > 0
+      ? Math.round(parsedPrice * (1 - parsedDiscount / 100) * 100) / 100
+      : parsedPrice;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,13 +45,13 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
         await apiCreateRecordedCourse({
           title: title.trim(), description: description.trim(),
           image: image.trim(), telegramLink: telegramLink.trim(),
-          price, discountEnabled, discountPercent,
+          price: parsedPrice, discountEnabled, discountPercent: parsedDiscount,
         });
         toast.success(a.saveSuccessRecorded);
       } else {
         await apiCreateOnlineCourse({
           title: title.trim(), description: description.trim(),
-          image: image.trim(), price: sessionPrice,
+          image: image.trim(), price: parsedSessionPrice,
           status: "available", availability: DEFAULT_AVAILABILITY,
         });
         toast.success(a.saveSuccessOnline);
@@ -70,14 +74,9 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal — bottom-sheet on mobile, centered on sm+ */}
-      <div className="relative w-full sm:w-[560px] sm:mx-4 bg-[#0f0a12] border-t sm:border border-primary/30 shadow-[0_-8px_60px_rgba(212,175,55,0.12)] sm:shadow-[0_0_80px_rgba(212,175,55,0.1)] rounded-t-2xl sm:rounded-none flex flex-col max-h-[92dvh] sm:max-h-[88vh]">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/80 to-transparent rounded-t-2xl sm:rounded-none" />
-
-        {/* Mobile drag handle */}
-        <div className="flex justify-center pt-3 sm:hidden">
-          <div className="w-10 h-1 rounded-full bg-white/20" />
-        </div>
+      {/* Modal */}
+      <div className="relative w-[90%] max-w-[560px] mx-auto sm:mx-4 bg-[#0f0a12] border border-primary/30 shadow-[0_0_80px_rgba(212,175,55,0.1)] rounded-xl flex flex-col max-h-[92dvh] overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/80 to-transparent rounded-t-xl" />
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 border-b border-white/8 flex-shrink-0">
@@ -176,8 +175,9 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                   min={0}
                   step={0.01}
                   value={price}
-                  onChange={(e) => setPrice(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 rounded-sm"
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
                 />
               </div>
 
@@ -209,12 +209,13 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                         min={1}
                         max={100}
                         value={discountPercent}
-                        onChange={(e) => setDiscountPercent(parseInt(e.target.value) || 0)}
-                        className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/50 rounded-sm"
+                        onChange={(e) => setDiscountPercent(e.target.value)}
+                        placeholder="10"
+                        className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-3 py-2.5 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
                       />
                     </div>
                     <div className="text-center pt-5">
-                      <p className="text-xs text-muted-foreground line-through">${price.toFixed(2)}</p>
+                      <p className="text-xs text-muted-foreground line-through">${parsedPrice.toFixed(2)}</p>
                       <p className="text-primary font-semibold text-xl">${computedFinalPrice.toFixed(2)}</p>
                     </div>
                   </div>
@@ -234,8 +235,9 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                 min={0}
                 step={0.01}
                 value={sessionPrice}
-                onChange={(e) => setSessionPrice(parseFloat(e.target.value) || 0)}
-                className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 rounded-sm"
+                onChange={(e) => setSessionPrice(e.target.value)}
+                placeholder="0.00"
+                className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
               />
               <p className="text-xs text-muted-foreground/50 mt-1.5">{a.availabilityNote}</p>
             </div>

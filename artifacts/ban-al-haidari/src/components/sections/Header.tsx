@@ -39,7 +39,7 @@ export function Header() {
     { name: t.nav.mission, href: "#mission" },
     { name: t.nav.products, href: "#products" },
     { name: t.nav.testimonials, href: "#testimonials" },
-    { name: t.nav.contact, href: "#contact" },
+    { name: t.nav.contact, href: "#footer" },
   ];
 
   const displayName = user?.displayName ?? user?.email?.split("@")[0] ?? t.auth.myAccount;
@@ -78,14 +78,14 @@ export function Header() {
               <img
                 src="/logo.png"
                 alt="Ban Al-Haidari Logo"
-                className="relative h-24 md:h-[150px] object-contain transition-all duration-500 drop-shadow-[0_0_18px_rgba(212,175,55,0.55)] group-hover:drop-shadow-[0_0_32px_rgba(212,175,55,0.85)]"
+                className="relative h-20 md:h-[100px] object-contain transition-all duration-500 drop-shadow-[0_0_18px_rgba(212,175,55,0.55)] group-hover:drop-shadow-[0_0_32px_rgba(212,175,55,0.85)]"
                 data-testid="img-logo"
               />
             </div>
           </a>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-5 lg:gap-6">
+          <nav className="hidden md:flex items-center flex-wrap gap-x-4 lg:gap-x-6 gap-y-2">
             {navLinks.map((link) => (
               <a
                 key={link.name}
@@ -98,7 +98,7 @@ export function Header() {
             ))}
 
             <a
-              href="#contact"
+              href="#products"
               className="px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-xs font-semibold"
               data-testid="link-nav-book"
             >
@@ -281,7 +281,7 @@ export function Header() {
                 </a>
               ))}
               <a
-                href="#contact"
+                href="#products"
                 className="px-8 py-3 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-sm font-semibold mt-2"
                 onClick={() => setMobileMenuOpen(false)}
               >

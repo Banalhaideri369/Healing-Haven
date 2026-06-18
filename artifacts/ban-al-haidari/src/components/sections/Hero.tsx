@@ -51,7 +51,7 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 1 }}
         >
           <a
-            href="#contact"
+            href="#products"
             className="group relative inline-flex items-center justify-center px-8 py-4 bg-transparent text-primary uppercase tracking-widest font-semibold text-sm overflow-hidden transition-all hover:text-primary-foreground"
             data-testid="link-hero-book"
           >

@@ -5,7 +5,7 @@ export function Footer() {
   const { t } = useLanguage();
 
   return (
-    <footer className="bg-background py-16 border-t border-primary/10">
+    <footer id="footer" className="bg-background py-16 border-t border-primary/10">
       <div className="container mx-auto px-6 flex flex-col items-center text-center">
         <a href="#" className="mb-8 block group">
           <div className="relative">
@@ -19,19 +19,22 @@ export function Footer() {
           </div>
         </a>
 
-        <p className="text-primary font-serif text-xl mb-10 italic">
-          "{t.footer.tagline}"
-        </p>
-
-        <SocialIconsPulsing size="md" showLabel className="justify-center mb-12" />
+        <SocialIconsPulsing size="md" showLabel className="justify-center mb-10" />
 
         <div className="w-full max-w-md h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent mb-8" />
 
-        <p className="text-xs text-muted-foreground/60 font-light tracking-wider">
+        <p className="text-xs text-muted-foreground/60 font-light tracking-wider mb-3">
           &copy; {new Date().getFullYear()} Ban Al-Haidari. {t.footer.rights}
-          <br />
-          <span className="mt-2 inline-block">{t.footer.designed}</span>
         </p>
+
+        <a
+          href="https://www.instagram.com/devlogic_web?igsh=ejE2NDd6MGhocjVh"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] text-muted-foreground/40 hover:text-primary/60 transition-colors tracking-wider"
+        >
+          Developed by Dev Logic
+        </a>
       </div>
     </footer>
   );
