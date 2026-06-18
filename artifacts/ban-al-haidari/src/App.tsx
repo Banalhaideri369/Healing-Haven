@@ -11,6 +11,7 @@ import Home from "@/pages/Home";
 import Profile from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Success from "@/pages/Success";
+import BookingPage from "@/pages/BookingPage";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ function Router() {
         {() => <ProtectedRoute component={AdminDashboard} adminOnly />}
       </Route>
       <Route path="/success" component={Success} />
+      <Route path="/booking/:courseId" component={BookingPage} />
       <Route component={NotFound} />
     </Switch>
   );
