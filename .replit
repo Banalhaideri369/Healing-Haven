@@ -38,3 +38,4 @@ externalPort = 80
 [userenv]
 
 [userenv.shared]
+TELEGRAM_WORKSHOP_URL = "https://t.me/+Luy1BC1WsokxNGVl"

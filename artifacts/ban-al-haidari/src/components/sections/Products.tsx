@@ -1,40 +1,51 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import type { Variants } from "framer-motion";
-import { ShoppingCart, CreditCard } from "lucide-react";
+import { ShoppingCart, Zap, Check } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const productImages = [
-  "/product-1.jpg",
-  "/product-2.jpg",
-  "/product-3.jpg",
-  "/product-4.jpg",
-];
-
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15 },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.7 } },
-};
-
 export function Products() {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
+  const [inCart, setInCart] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+
+  const handleAddToCart = () => {
+    setInCart(true);
+  };
+
+  const handleBuyNow = async () => {
+    setCheckoutLoading(true);
+    setCheckoutError("");
+    try {
+      const response = await fetch("/api/checkout/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!response.ok) throw new Error("checkout-failed");
+      const data = await response.json() as { url?: string; error?: string };
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error ?? "no-url");
+      }
+    } catch {
+      setCheckoutError(isRTL ? "حدث خطأ، يرجى المحاولة مجدداً" : "Something went wrong. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   return (
-    <section id="products" className="py-24 md:py-32 relative bg-[#0f0a12] border-y border-primary/10 overflow-hidden">
+    <section
+      id="products"
+      className="py-24 md:py-32 relative bg-[#0f0a12] border-y border-primary/10 overflow-hidden"
+    >
       {/* Background glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-secondary/10 rounded-full blur-[180px] pointer-events-none" />
 
-      <div className="container mx-auto px-6 max-w-6xl relative z-10">
-
-        {/* Header */}
-        <div className="text-center mb-20">
+      <div className="container mx-auto px-6 max-w-5xl relative z-10">
+        {/* Section Header */}
+        <div className="text-center mb-16">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -53,107 +64,184 @@ export function Products() {
             {t.products.heading1}{" "}
             <span className="italic text-muted">{t.products.heading2}</span>
           </motion.h3>
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-            className="mt-6 text-muted-foreground font-light max-w-xl mx-auto"
-          >
-            {t.products.subtitle}
-          </motion.p>
         </div>
 
-        {/* Products Grid */}
+        {/* Workshop Card */}
         <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-50px" }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-10"
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="relative bg-card border border-primary/20 overflow-hidden shadow-[0_0_60px_rgba(212,175,55,0.06)]"
         >
-          {t.products.items.map((product, index) => (
-            <motion.div
-              key={index}
-              variants={itemVariants}
-              className="group relative bg-card border border-primary/10 hover:border-primary/40 transition-all duration-500 overflow-hidden flex flex-col"
-              data-testid={`product-card-${index}`}
-            >
-              {/* Hover top glow line */}
-              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          {/* Top gold line */}
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/80 to-transparent z-10" />
 
-              {/* Product Image */}
-              <div className="relative overflow-hidden aspect-[4/3]">
-                <img
-                  src={productImages[index]}
-                  alt={product.title}
-                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
+          {/* Cover Image */}
+          <div className="relative overflow-hidden" style={{ aspectRatio: "16/7" }}>
+            <img
+              src="/workshop-cover.jpg"
+              alt={t.products.workshopTitle}
+              className="w-full h-full object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
 
-                {/* Badge */}
-                {product.badge && (
-                  <div className="absolute top-4 start-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-widest">
-                    {product.badge}
-                  </div>
-                )}
-              </div>
+            {/* Badge */}
+            <div className="absolute top-5 start-5 px-4 py-1.5 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-widest z-10">
+              {t.products.workshopBadge}
+            </div>
 
-              {/* Content */}
-              <div className="p-8 flex flex-col flex-1">
-                <h4 className="font-serif text-2xl md:text-3xl text-foreground mb-3 group-hover:text-primary transition-colors duration-300">
-                  {product.title}
-                </h4>
-                <p className="text-muted-foreground font-light leading-relaxed mb-6 flex-1">
-                  {product.description}
+            {/* Title overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 z-10">
+              <h4 className="font-serif text-3xl md:text-4xl lg:text-5xl text-foreground mb-3 drop-shadow-lg">
+                {t.products.workshopTitle}
+              </h4>
+              <p className="text-primary/90 text-sm md:text-base font-light italic max-w-2xl leading-relaxed">
+                ✨ {t.products.workshopTagline}
+              </p>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-8 md:p-12" dir={isRTL ? "rtl" : "ltr"}>
+            {/* Problem questions */}
+            <div className="mb-10 space-y-3 max-w-2xl">
+              {t.products.workshopProblems.map((q, i) => (
+                <p
+                  key={i}
+                  className="text-muted-foreground font-light leading-relaxed flex items-start gap-3"
+                >
+                  <span className="text-primary/60 mt-1 flex-shrink-0 text-xs">◆</span>
+                  {q}
                 </p>
+              ))}
+              <p className="text-foreground/70 font-light leading-relaxed mt-4 pt-4 border-t border-primary/10">
+                {t.products.workshopIntro}
+              </p>
+            </div>
 
-                {/* Features list */}
-                {product.features && product.features.length > 0 && (
-                  <ul className="mb-6 space-y-2">
-                    {product.features.map((feature, fi) => (
-                      <li key={fi} className="flex items-center gap-2 text-sm text-muted-foreground font-light">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {/* Price */}
-                <div className="mb-6 pt-4 border-t border-primary/10">
-                  <span className="font-serif text-2xl text-primary">{product.price}</span>
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-3 flex-wrap">
-                  <button
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground font-semibold text-sm uppercase tracking-widest hover:bg-primary/90 active:scale-95 transition-all duration-200"
-                    data-testid={`button-buy-${index}`}
-                    onClick={() => {
-                      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                  >
-                    <ShoppingCart size={16} />
-                    {t.products.buyNow}
-                  </button>
-
-                  <button
-                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-primary text-primary font-semibold text-sm uppercase tracking-widest hover:bg-primary/10 active:scale-95 transition-all duration-200"
-                    data-testid={`button-pay-${index}`}
-                    onClick={() => {
-                      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
-                    }}
-                  >
-                    <CreditCard size={16} />
-                    {t.products.payNow}
-                  </button>
-                </div>
+            {/* 3-column content grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+              {/* What you'll discover */}
+              <div>
+                <h5 className="text-primary uppercase tracking-widest text-[11px] font-semibold mb-5 flex items-center gap-2">
+                  <span className="w-5 h-[1px] bg-primary inline-block" />
+                  {t.products.workshopDiscoverTitle}
+                </h5>
+                <ul className="space-y-3">
+                  {t.products.workshopDiscover.map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2.5 text-sm text-muted-foreground font-light leading-relaxed"
+                    >
+                      <span className="flex-shrink-0 mt-0.5">💎</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </motion.div>
-          ))}
-        </motion.div>
 
+              {/* What's included */}
+              <div>
+                <h5 className="text-primary uppercase tracking-widest text-[11px] font-semibold mb-5 flex items-center gap-2">
+                  <span className="w-5 h-[1px] bg-primary inline-block" />
+                  {t.products.workshopIncludesTitle}
+                </h5>
+                <ul className="space-y-3">
+                  {t.products.workshopIncludes.map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2.5 text-sm text-muted-foreground font-light leading-relaxed"
+                    >
+                      <span className="flex-shrink-0 mt-0.5">✨</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Who it's for */}
+              <div>
+                <h5 className="text-primary uppercase tracking-widest text-[11px] font-semibold mb-5 flex items-center gap-2">
+                  <span className="w-5 h-[1px] bg-primary inline-block" />
+                  {t.products.workshopForTitle}
+                </h5>
+                <ul className="space-y-3">
+                  {t.products.workshopFor.map((item, i) => (
+                    <li
+                      key={i}
+                      className="flex items-start gap-2.5 text-sm text-muted-foreground font-light leading-relaxed"
+                    >
+                      <span className="flex-shrink-0 mt-0.5">🌷</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Benefits bar */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-6 mb-10 border-y border-primary/10">
+              {t.products.workshopBenefits.map((b, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Check size={13} className="text-primary flex-shrink-0" />
+                  {b}
+                </div>
+              ))}
+            </div>
+
+            {/* Closing quote */}
+            <blockquote className="text-center mb-10 px-4 md:px-16">
+              <p className="font-serif text-base md:text-lg text-primary/80 italic leading-relaxed">
+                💜 {t.products.workshopQuote}
+              </p>
+            </blockquote>
+
+            {/* Price + Buttons */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-6 border-t border-primary/20">
+              <div>
+                <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-1">
+                  {t.products.workshopPriceLabel}
+                </p>
+                <span className="font-serif text-5xl md:text-6xl text-primary tracking-tight">
+                  $150
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                {checkoutError && (
+                  <p className="text-red-400 text-xs text-center sm:col-span-2">
+                    {checkoutError}
+                  </p>
+                )}
+                <button
+                  onClick={handleAddToCart}
+                  className={`flex items-center justify-center gap-2 px-8 py-4 border font-semibold text-sm uppercase tracking-widest transition-all duration-300 min-w-[180px] ${
+                    inCart
+                      ? "border-primary bg-primary/10 text-primary cursor-default"
+                      : "border-primary/40 text-primary/70 hover:border-primary hover:text-primary hover:bg-primary/5"
+                  }`}
+                  data-testid="button-add-cart"
+                >
+                  <ShoppingCart size={16} />
+                  {inCart ? t.products.workshopInCart : t.products.workshopAddToCart}
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  disabled={checkoutLoading}
+                  className="flex items-center justify-center gap-2 px-8 py-4 bg-primary text-primary-foreground font-semibold text-sm uppercase tracking-widest hover:bg-primary/90 active:scale-95 transition-all duration-200 disabled:opacity-60 min-w-[180px]"
+                  data-testid="button-buy-now"
+                >
+                  <Zap size={16} />
+                  {checkoutLoading ? t.products.workshopProcessing : t.products.workshopBuyNow}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom gold line */}
+          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+        </motion.div>
       </div>
     </section>
   );

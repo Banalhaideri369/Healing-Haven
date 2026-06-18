@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import Profile from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Success from "@/pages/Success";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/admin">
         {() => <ProtectedRoute component={AdminDashboard} adminOnly />}
       </Route>
+      <Route path="/success" component={Success} />
       <Route component={NotFound} />
     </Switch>
   );
