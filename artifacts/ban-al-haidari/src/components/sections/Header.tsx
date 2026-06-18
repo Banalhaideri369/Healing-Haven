@@ -9,7 +9,7 @@ import { useLocation } from "wouter";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { t, toggleLang, lang } = useLanguage();
@@ -23,7 +23,6 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close user menu on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -46,19 +45,19 @@ export function Header() {
 
   const handleGoProfile = () => {
     setUserMenuOpen(false);
-    setMobileMenuOpen(false);
+    setMenuOpen(false);
     navigate("/profile");
   };
 
   const handleGoAdmin = () => {
     setUserMenuOpen(false);
-    setMobileMenuOpen(false);
+    setMenuOpen(false);
     navigate("/admin");
   };
 
   const handleLogout = async () => {
     setUserMenuOpen(false);
-    setMobileMenuOpen(false);
+    setMenuOpen(false);
     await logOut();
   };
 
@@ -68,53 +67,45 @@ export function Header() {
         className={`fixed top-0 w-full z-50 transition-all duration-500 border-b border-primary/0 ${
           scrolled
             ? "bg-background/80 backdrop-blur-md border-primary/30 shadow-[0_4px_30px_rgba(212,175,55,0.1)] py-2"
-            : "bg-transparent py-4"
+            : "bg-transparent py-3"
         }`}
       >
-        <div className="container mx-auto px-6 flex items-center justify-between">
+        <div className="container mx-auto px-5 flex items-center justify-between">
+
+          {/* Logo */}
           <a href="#" className="block group" data-testid="link-home">
             <div className="relative">
               <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl scale-75 opacity-0 group-hover:opacity-100 transition-all duration-700 pointer-events-none" />
               <img
                 src="/logo.png"
                 alt="Ban Al-Haidari Logo"
-                className="relative h-20 md:h-[100px] object-contain transition-all duration-500 drop-shadow-[0_0_18px_rgba(212,175,55,0.55)] group-hover:drop-shadow-[0_0_32px_rgba(212,175,55,0.85)]"
+                className="relative h-20 md:h-[90px] object-contain transition-all duration-500 drop-shadow-[0_0_18px_rgba(212,175,55,0.55)] group-hover:drop-shadow-[0_0_32px_rgba(212,175,55,0.85)]"
                 data-testid="img-logo"
               />
             </div>
           </a>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center flex-wrap gap-x-4 lg:gap-x-6 gap-y-2">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="text-xs uppercase tracking-[0.15em] font-medium text-foreground hover:text-primary transition-colors"
-                data-testid={`link-nav-${link.href.replace("#", "")}`}
-              >
-                {link.name}
-              </a>
-            ))}
-
+          {/* Right side — always visible: book + auth + lang + hamburger */}
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Book a session — visible on md+ */}
             <a
               href="#products"
-              className="px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-xs font-semibold"
+              className="hidden md:inline-flex px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-xs font-semibold"
               data-testid="link-nav-book"
             >
               {t.nav.book}
             </a>
 
-            {/* Auth area */}
+            {/* User account */}
             {user ? (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 px-3 py-2 border border-primary/30 text-primary hover:bg-primary/10 transition-all text-xs uppercase tracking-widest"
+                  className="flex items-center gap-1.5 px-3 py-2 border border-primary/30 text-primary hover:bg-primary/10 transition-all text-xs uppercase tracking-widest"
                   data-testid="button-user-menu"
                 >
                   <UserCircle size={15} />
-                  <span className="max-w-[100px] truncate">{displayName}</span>
+                  <span className="hidden sm:inline max-w-[90px] truncate">{displayName}</span>
                 </button>
 
                 <AnimatePresence>
@@ -127,6 +118,9 @@ export function Header() {
                       className="absolute end-0 top-full mt-2 w-48 bg-[#0f0a12] border border-primary/20 shadow-[0_8px_40px_rgba(0,0,0,0.6)] z-50 overflow-hidden"
                     >
                       <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+                      <div className="px-3 py-2 border-b border-primary/10">
+                        <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
+                      </div>
                       <div className="p-2 space-y-0.5">
                         <button
                           onClick={handleGoProfile}
@@ -164,14 +158,14 @@ export function Header() {
             ) : (
               <button
                 onClick={() => setAuthOpen(true)}
-                className="px-4 py-2 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 text-xs font-semibold tracking-widest uppercase"
+                className="px-3 py-2 bg-primary/10 border border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 text-xs font-semibold tracking-widest uppercase"
                 data-testid="button-open-auth"
               >
                 {t.auth.login}
               </button>
             )}
 
-            {/* Language Toggle */}
+            {/* Language toggle */}
             <button
               onClick={toggleLang}
               className="px-3 py-2 border border-primary/30 text-primary/70 hover:border-primary hover:text-primary transition-all duration-300 text-xs font-semibold tracking-widest uppercase"
@@ -179,114 +173,79 @@ export function Header() {
             >
               {lang === "ar" ? "EN" : "عربي"}
             </button>
-          </nav>
 
-          {/* Mobile right side */}
-          <div className="md:hidden flex items-center gap-2">
-            {user ? (
-              <button
-                onClick={() => setUserMenuOpen((v) => !v)}
-                className="flex items-center gap-1 text-xs text-primary border border-primary/30 px-2 py-1.5"
-                data-testid="button-user-menu-mobile"
-              >
-                <UserCircle size={18} />
-              </button>
-            ) : (
-              <button
-                onClick={() => setAuthOpen(true)}
-                className="px-3 py-1.5 bg-primary/10 border border-primary/40 text-primary text-xs font-semibold"
-                data-testid="button-open-auth-mobile"
-              >
-                {t.auth.login}
-              </button>
-            )}
+            {/* Hamburger — ALL screen sizes */}
             <button
-              onClick={toggleLang}
-              className="px-3 py-1.5 border border-primary/40 text-primary/80 text-xs font-semibold"
-              data-testid="button-lang-toggle-mobile"
+              className="flex flex-col items-center justify-center w-9 h-9 gap-[5px] text-foreground hover:text-primary transition-colors"
+              onClick={() => setMenuOpen(!menuOpen)}
+              data-testid="button-menu"
+              aria-label="Toggle menu"
             >
-              {lang === "ar" ? "EN" : "عربي"}
-            </button>
-            <button
-              className="text-foreground hover:text-primary"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              data-testid="button-mobile-menu"
-            >
-              {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+              <AnimatePresence mode="wait" initial={false}>
+                {menuOpen ? (
+                  <motion.span
+                    key="close"
+                    initial={{ opacity: 0, rotate: -90 }}
+                    animate={{ opacity: 1, rotate: 0 }}
+                    exit={{ opacity: 0, rotate: 90 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <X size={22} />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="open"
+                    initial={{ opacity: 0, rotate: 90 }}
+                    animate={{ opacity: 1, rotate: 0 }}
+                    exit={{ opacity: 0, rotate: -90 }}
+                    transition={{ duration: 0.15 }}
+                    className="flex flex-col gap-[5px]"
+                  >
+                    <span className="w-5 h-[1.5px] bg-current block" />
+                    <span className="w-5 h-[1.5px] bg-current block" />
+                    <span className="w-5 h-[1.5px] bg-current block" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
           </div>
         </div>
 
-        {/* Mobile user dropdown */}
+        {/* Full-width dropdown nav — all screen sizes */}
         <AnimatePresence>
-          {userMenuOpen && user && (
+          {menuOpen && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: -12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-              className="md:hidden absolute top-full right-4 w-52 bg-[#0f0a12] border border-primary/20 shadow-[0_8px_40px_rgba(0,0,0,0.7)] z-50"
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-full left-0 w-full bg-background/97 backdrop-blur-lg border-b border-primary/20 shadow-2xl"
             >
-              <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-              <div className="p-2 space-y-0.5">
-                <div className="px-3 py-2 border-b border-primary/10 mb-1">
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
-                <button
-                  onClick={handleGoProfile}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-foreground/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
-                >
-                  <User size={13} />
-                  {lang === "ar" ? "ملفي الشخصي" : "My Profile"}
-                </button>
-                {isAdmin && (
-                  <button
-                    onClick={handleGoAdmin}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-primary/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
+              {/* Nav links */}
+              <nav className="container mx-auto px-6 py-6 flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-4 sm:gap-6">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="text-sm uppercase tracking-[0.2em] font-medium text-foreground hover:text-primary transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                    data-testid={`link-nav-${link.href.replace("#", "")}`}
                   >
-                    <LayoutDashboard size={13} />
-                    {lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}
-                  </button>
-                )}
-                <div className="h-px bg-primary/10 my-1" />
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors text-start"
-                >
-                  <LogOut size={13} />
-                  {t.auth.logout}
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                    {link.name}
+                  </a>
+                ))}
+              </nav>
 
-        {/* Mobile Nav */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="md:hidden absolute top-full left-0 w-full bg-background/95 backdrop-blur-lg border-b border-primary/20 flex flex-col items-center py-8 gap-5 shadow-2xl"
-            >
-              {navLinks.map((link) => (
+              {/* Book button */}
+              <div className="container mx-auto px-6 pb-6 flex justify-center">
                 <a
-                  key={link.name}
-                  href={link.href}
-                  className="text-base uppercase tracking-[0.2em] font-medium text-foreground hover:text-primary transition-colors"
-                  onClick={() => setMobileMenuOpen(false)}
+                  href="#products"
+                  className="px-8 py-3 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-sm font-semibold"
+                  onClick={() => setMenuOpen(false)}
                 >
-                  {link.name}
+                  {t.nav.book}
                 </a>
-              ))}
-              <a
-                href="#products"
-                className="px-8 py-3 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-sm font-semibold mt-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {t.nav.book}
-              </a>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

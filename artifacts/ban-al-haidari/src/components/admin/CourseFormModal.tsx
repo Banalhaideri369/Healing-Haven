@@ -1,16 +1,48 @@
-import { useState } from "react";
-import { X, Loader2, ImageIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Loader2, Upload, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { DEFAULT_AVAILABILITY } from "@/lib/courses";
 import { apiCreateRecordedCourse, apiCreateOnlineCourse } from "@/lib/api";
 
 type Mode = "recorded" | "online";
+type ImgMode = "upload" | "url";
 
 interface Props {
   mode: Mode;
   onClose: () => void;
   onSaved: () => void;
+}
+
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 900;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) {
+            height = Math.round((height * MAX) / width);
+            width = MAX;
+          } else {
+            width = Math.round((width * MAX) / height);
+            height = MAX;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.78));
+      };
+      img.onerror = reject;
+      img.src = ev.target!.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 export function CourseFormModal({ mode, onClose, onSaved }: Props) {
@@ -21,6 +53,9 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
+  const [imgMode, setImgMode] = useState<ImgMode>("upload");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [telegramLink, setTelegramLink] = useState("");
   const [price, setPrice] = useState<string>("");
   const [discountEnabled, setDiscountEnabled] = useState(false);
@@ -35,6 +70,24 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
     discountEnabled && parsedDiscount > 0
       ? Math.round(parsedPrice * (1 - parsedDiscount / 100) * 100) / 100
       : parsedPrice;
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error(isRTL ? "حجم الصورة كبير جداً (الحد الأقصى 15MB)" : "Image too large (max 15MB)");
+      return;
+    }
+    setUploading(true);
+    try {
+      const dataUrl = await compressImage(file);
+      setImage(dataUrl);
+    } catch {
+      toast.error(isRTL ? "فشل في تحميل الصورة" : "Failed to load image");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,20 +120,21 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
-      dir={isRTL ? "rtl" : "ltr"}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative w-[90%] max-w-[560px] mx-auto sm:mx-4 bg-[#0f0a12] border border-primary/30 shadow-[0_0_80px_rgba(212,175,55,0.1)] rounded-xl flex flex-col max-h-[92dvh] overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/80 to-transparent rounded-t-xl" />
+      {/* Modal card */}
+      <div
+        className="relative w-full max-w-[500px] bg-[#0f0a12] border border-primary/30 shadow-[0_0_80px_rgba(212,175,55,0.12)] rounded-xl flex flex-col overflow-hidden"
+        style={{ maxHeight: "min(90dvh, 700px)" }}
+        dir={isRTL ? "rtl" : "ltr"}
+      >
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/80 to-transparent" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 sm:py-5 border-b border-white/8 flex-shrink-0">
-          <h3 className="font-serif text-lg sm:text-xl text-foreground">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8 flex-shrink-0">
+          <h3 className="font-serif text-lg text-foreground">
             {mode === "recorded" ? a.addRecordedTitle : a.addOnlineTitle}
           </h3>
           <button
@@ -91,32 +145,95 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
           </button>
         </div>
 
-        {/* Scrollable form body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5 space-y-4">
-          {/* Image URL */}
+        {/* Scrollable form */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
+
+          {/* Image — upload or URL */}
           <div>
             <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">
               {a.fieldImage}
             </label>
-            <input
-              type="url"
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://..."
-              className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
-            />
-            {image ? (
-              <div className="mt-2 w-20 h-14 border border-white/10 overflow-hidden rounded-sm">
-                <img
-                  src={image}
-                  alt="preview"
-                  className="w-full h-full object-cover"
-                  onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+
+            {/* Toggle: Upload / URL */}
+            <div className="flex mb-3 border border-white/10 rounded-sm overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setImgMode("upload")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs uppercase tracking-widest transition-colors ${
+                  imgMode === "upload"
+                    ? "bg-primary/20 text-primary border-e border-primary/30"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5 border-e border-white/8"
+                }`}
+              >
+                <Upload size={12} />
+                {isRTL ? "رفع من الجهاز" : "Upload File"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setImgMode("url")}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-xs uppercase tracking-widest transition-colors ${
+                  imgMode === "url"
+                    ? "bg-primary/20 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                }`}
+              >
+                <Link2 size={12} />
+                {isRTL ? "رابط URL" : "Image URL"}
+              </button>
+            </div>
+
+            {imgMode === "upload" ? (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full border border-dashed border-white/20 hover:border-primary/50 text-muted-foreground hover:text-primary py-6 flex flex-col items-center gap-2 transition-colors rounded-sm disabled:opacity-60"
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin text-primary" />
+                      <span className="text-xs">{isRTL ? "جاري المعالجة..." : "Processing..."}</span>
+                    </>
+                  ) : image && image.startsWith("data:") ? (
+                    <>
+                      <img src={image} alt="preview" className="h-20 object-cover rounded" />
+                      <span className="text-xs text-primary">{isRTL ? "انقر لتغيير الصورة" : "Click to change"}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={20} />
+                      <span className="text-xs">{isRTL ? "اضغط لاختيار صورة من جهازك" : "Tap to select an image"}</span>
+                    </>
+                  )}
+                </button>
               </div>
             ) : (
-              <div className="mt-2 w-20 h-14 border border-white/8 flex items-center justify-center bg-white/3 rounded-sm">
-                <ImageIcon size={16} className="text-muted-foreground/30" />
+              <div>
+                <input
+                  type="url"
+                  value={image.startsWith("data:") ? "" : image}
+                  onChange={(e) => setImage(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
+                />
+                {image && !image.startsWith("data:") && (
+                  <div className="mt-2 w-20 h-14 border border-white/10 overflow-hidden rounded-sm">
+                    <img
+                      src={image}
+                      alt="preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -243,11 +360,11 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
             </div>
           )}
 
-          <div className="h-2" />
+          <div className="h-1" />
         </form>
 
         {/* Sticky footer */}
-        <div className="flex items-center justify-end gap-3 px-5 sm:px-6 py-4 border-t border-white/8 flex-shrink-0 bg-[#0f0a12]">
+        <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-white/8 flex-shrink-0 bg-[#0f0a12]">
           <button
             type="button"
             onClick={onClose}
@@ -258,7 +375,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={saving}
+            disabled={saving || uploading}
             className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wider hover:bg-primary/90 disabled:opacity-60 transition-colors rounded-sm"
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
