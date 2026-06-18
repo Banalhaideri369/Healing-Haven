@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, ChevronDown, ChevronUp, Loader2, Video } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   subscribeOnlineCourses,
   updateOnlineCourse,
@@ -18,6 +19,9 @@ const fadeUp = {
 };
 
 export function OnlineCoursesTab() {
+  const { t } = useLanguage();
+  const a = t.admin;
+
   const [courses, setCourses] = useState<OnlineCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -38,9 +42,9 @@ export function OnlineCoursesTab() {
     const next = course.status === "available" ? "unavailable" : "available";
     try {
       await updateOnlineCourse(course.id, { status: next });
-      toast.success(`Course marked as ${next}`);
+      toast.success(a.statusUpdated);
     } catch {
-      toast.error("Failed to update status");
+      toast.error(a.statusError);
     }
   };
 
@@ -49,20 +53,20 @@ export function OnlineCoursesTab() {
     try {
       await updateOnlineCourse(id, { availability });
     } catch {
-      toast.error("Failed to save availability");
+      toast.error(a.availabilityError);
     } finally {
       setSavingId(null);
     }
-  }, []);
+  }, [a]);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
       await deleteOnlineCourse(id);
-      toast.success("Course deleted");
+      toast.success(a.deletedSuccess);
       if (expandedId === id) setExpandedId(null);
     } catch {
-      toast.error("Failed to delete course");
+      toast.error(a.deleteError);
     } finally {
       setDeletingId(null);
       setConfirmDelete(null);
@@ -71,39 +75,35 @@ export function OnlineCoursesTab() {
 
   return (
     <div>
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h3 className="text-lg text-foreground font-medium">Online Courses</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">{courses.length} course{courses.length !== 1 ? "s" : ""}</p>
+          <h3 className="text-lg text-foreground font-medium">{a.onlineCourses}</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">{a.courseCount(courses.length)}</p>
         </div>
         <button
           onClick={() => setShowAdd(true)}
           className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wider hover:bg-primary/90 transition-colors"
         >
           <Plus size={15} />
-          Add Course
+          {a.addCourse}
         </button>
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin text-primary/50" />
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && courses.length === 0 && (
         <div className="text-center py-20 border border-dashed border-white/8">
-          <p className="text-muted-foreground/50 text-sm">No online courses yet.</p>
+          <p className="text-muted-foreground/50 text-sm">{a.noOnlineCourses}</p>
           <button onClick={() => setShowAdd(true)} className="mt-3 text-primary text-sm hover:underline">
-            Add your first online course →
+            {a.addFirstOnlineCourse}
           </button>
         </div>
       )}
 
-      {/* Course list */}
       <div className="space-y-4">
         {courses.map((course, i) => {
           const isExpanded = expandedId === course.id;
@@ -118,10 +118,8 @@ export function OnlineCoursesTab() {
               custom={i}
               className="bg-card border border-white/8 overflow-hidden"
             >
-              {/* Gold top line */}
               <div className="h-[1px] bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
 
-              {/* Course row */}
               <div className="flex items-center gap-4 p-5">
                 {/* Thumbnail */}
                 <div className="w-20 h-14 flex-shrink-0 bg-black/30 overflow-hidden">
@@ -145,14 +143,14 @@ export function OnlineCoursesTab() {
                   {course.description && (
                     <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{course.description}</p>
                   )}
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <span className="text-xs text-primary/70 font-mono">${course.price.toFixed(2)} / session</span>
-                  </div>
+                  <p className="text-xs text-primary/70 font-mono mt-1.5">
+                    ${course.price.toFixed(2)} {a.perSession}
+                  </p>
                 </div>
 
                 {/* Status toggle */}
                 <div className="flex flex-col items-center gap-1">
-                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Status</span>
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{a.statusLabel}</span>
                   <button
                     type="button"
                     onClick={() => handleStatusToggle(course)}
@@ -167,7 +165,7 @@ export function OnlineCoursesTab() {
                     />
                   </button>
                   <span className={`text-[10px] font-medium ${isAvailable ? "text-emerald-400" : "text-muted-foreground/50"}`}>
-                    {isAvailable ? "Available" : "Unavailable"}
+                    {isAvailable ? a.available : a.unavailable}
                   </span>
                 </div>
 
@@ -178,7 +176,7 @@ export function OnlineCoursesTab() {
                     className="flex items-center gap-1 text-xs text-primary/60 hover:text-primary border border-primary/20 px-3 py-1.5 hover:border-primary/40 transition-colors"
                   >
                     {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    Schedule
+                    {a.schedule}
                   </button>
 
                   {confirmDelete === course.id ? (
@@ -188,13 +186,13 @@ export function OnlineCoursesTab() {
                         disabled={deletingId === course.id}
                         className="text-[10px] text-red-400 border border-red-400/30 px-2 py-1 hover:bg-red-400/10 transition-colors"
                       >
-                        {deletingId === course.id ? <Loader2 size={10} className="animate-spin" /> : "Delete"}
+                        {deletingId === course.id ? <Loader2 size={10} className="animate-spin" /> : a.deleteYes}
                       </button>
                       <button
                         onClick={() => setConfirmDelete(null)}
                         className="text-[10px] text-muted-foreground border border-white/10 px-2 py-1"
                       >
-                        Cancel
+                        {a.deleteNo}
                       </button>
                     </div>
                   ) : (
@@ -221,11 +219,11 @@ export function OnlineCoursesTab() {
                     <div className="border-t border-white/8 p-5 bg-black/20">
                       <div className="flex items-center justify-between mb-4">
                         <h5 className="text-xs uppercase tracking-widest text-muted-foreground">
-                          Availability Schedule
+                          {a.availabilitySchedule}
                         </h5>
                         {savingId === course.id && (
                           <span className="flex items-center gap-1 text-xs text-primary/60">
-                            <Loader2 size={11} className="animate-spin" /> Saving…
+                            <Loader2 size={11} className="animate-spin" /> {a.saving}
                           </span>
                         )}
                       </div>
@@ -235,9 +233,7 @@ export function OnlineCoursesTab() {
                         disabled={!isAvailable}
                       />
                       {!isAvailable && (
-                        <p className="mt-3 text-xs text-amber-400/70 italic">
-                          Enable the course to edit its schedule.
-                        </p>
+                        <p className="mt-3 text-xs text-amber-400/70 italic">{a.enableToEdit}</p>
                       )}
                     </div>
                   </motion.div>
@@ -248,7 +244,6 @@ export function OnlineCoursesTab() {
         })}
       </div>
 
-      {/* Add modal */}
       {showAdd && (
         <CourseFormModal
           mode="online"

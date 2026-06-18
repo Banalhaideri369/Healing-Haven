@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { subscribeBookings, type Booking } from "@/lib/bookings";
 
 export function SubscriptionsTab() {
+  const { t } = useLanguage();
+  const a = t.admin;
+
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +24,7 @@ export function SubscriptionsTab() {
   const paid     = bookings.filter((b) => b.paymentStatus === "paid" || b.paymentStatus === "demo_paid");
 
   const formatDate = (b: Booking) => {
-    if (b.selectedDate && b.selectedTime) return `${b.selectedDate} at ${b.selectedTime}`;
+    if (b.selectedDate && b.selectedTime) return `${b.selectedDate} — ${b.selectedTime}`;
     if (b.selectedDate) return b.selectedDate;
     if (b.createdAt) {
       try {
@@ -36,10 +40,10 @@ export function SubscriptionsTab() {
       {/* Stats bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
-          { label: "Total", value: bookings.length, icon: <Circle size={16} className="text-primary/60" /> },
-          { label: "Recorded", value: recorded.length, icon: <BookOpen size={16} className="text-primary/60" /> },
-          { label: "Online", value: online.length, icon: <Video size={16} className="text-primary/60" /> },
-          { label: "Paid", value: paid.length, icon: <CheckCircle2 size={16} className="text-emerald-400/70" /> },
+          { label: a.total,    value: bookings.length, icon: <Circle       size={16} className="text-primary/60" /> },
+          { label: a.recorded, value: recorded.length, icon: <BookOpen     size={16} className="text-primary/60" /> },
+          { label: a.online,   value: online.length,   icon: <Video        size={16} className="text-primary/60" /> },
+          { label: a.paid,     value: paid.length,     icon: <CheckCircle2 size={16} className="text-emerald-400/70" /> },
         ].map(({ label, value, icon }) => (
           <div key={label} className="bg-card border border-white/8 p-4 flex items-center gap-3">
             {icon}
@@ -51,33 +55,26 @@ export function SubscriptionsTab() {
         ))}
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin text-primary/50" />
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && bookings.length === 0 && (
         <div className="text-center py-20 border border-dashed border-white/8">
-          <p className="text-muted-foreground/50 text-sm">No subscriptions or bookings yet.</p>
+          <p className="text-muted-foreground/50 text-sm">{a.noBookings}</p>
         </div>
       )}
 
-      {/* Table */}
       {!loading && bookings.length > 0 && (
         <div className="border border-white/8 overflow-x-auto">
-          {/* Gold top line */}
           <div className="h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/8 bg-black/20">
-                {["Name", "Email", "WhatsApp", "Course", "Date / Time", "Status"].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left px-4 py-3 text-[11px] uppercase tracking-widest text-muted-foreground font-medium whitespace-nowrap"
-                  >
+                {[a.colName, a.colEmail, a.colWhatsapp, a.colCourse, a.colDateTime, a.colStatus].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-[11px] uppercase tracking-widest text-muted-foreground font-medium whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -92,30 +89,20 @@ export function SubscriptionsTab() {
                   transition={{ delay: i * 0.03 }}
                   className="hover:bg-primary/3 transition-colors"
                 >
-                  <td className="px-4 py-3 text-foreground/90 font-medium whitespace-nowrap">
-                    {b.userName || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
-                    {b.userEmail || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
-                    {b.userWhatsapp || "—"}
-                  </td>
+                  <td className="px-4 py-3 text-foreground/90 font-medium whitespace-nowrap">{b.userName || "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{b.userEmail || "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{b.userWhatsapp || "—"}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 border font-semibold uppercase tracking-wide ${
-                          b.courseType === "online"
-                            ? "border-blue-400/30 text-blue-400/80 bg-blue-400/5"
-                            : "border-primary/30 text-primary/80 bg-primary/5"
-                        }`}
-                      >
+                      <span className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 border font-semibold uppercase tracking-wide ${
+                        b.courseType === "online"
+                          ? "border-blue-400/30 text-blue-400/80 bg-blue-400/5"
+                          : "border-primary/30 text-primary/80 bg-primary/5"
+                      }`}>
                         {b.courseType === "online" ? <Video size={9} /> : <BookOpen size={9} />}
-                        {b.courseType}
+                        {b.courseType === "online" ? a.online : a.recorded}
                       </span>
-                      <span className="text-foreground/70 text-xs truncate max-w-[140px]">
-                        {b.courseTitle}
-                      </span>
+                      <span className="text-foreground/70 text-xs truncate max-w-[140px]">{b.courseTitle}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
@@ -126,14 +113,14 @@ export function SubscriptionsTab() {
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span
-                      className={`inline-block text-[10px] px-2 py-0.5 border font-semibold uppercase tracking-wide ${
-                        b.paymentStatus === "paid" || b.paymentStatus === "demo_paid"
-                          ? "border-emerald-400/30 text-emerald-400 bg-emerald-400/5"
-                          : "border-amber-400/30 text-amber-400/70 bg-amber-400/5"
-                      }`}
-                    >
-                      {b.paymentStatus === "demo_paid" ? "Demo Paid" : b.paymentStatus}
+                    <span className={`inline-block text-[10px] px-2 py-0.5 border font-semibold uppercase tracking-wide ${
+                      b.paymentStatus === "paid" || b.paymentStatus === "demo_paid"
+                        ? "border-emerald-400/30 text-emerald-400 bg-emerald-400/5"
+                        : "border-amber-400/30 text-amber-400/70 bg-amber-400/5"
+                    }`}>
+                      {b.paymentStatus === "demo_paid" ? a.demoPaid
+                       : b.paymentStatus === "paid" ? a.paid
+                       : a.pending}
                     </span>
                   </td>
                 </motion.tr>

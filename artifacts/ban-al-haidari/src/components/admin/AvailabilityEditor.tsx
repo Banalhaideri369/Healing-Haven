@@ -1,16 +1,7 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { type Availability, type DayKey } from "@/lib/courses";
-
-const DAY_LABELS: Record<DayKey, string> = {
-  sun: "Sunday",
-  mon: "Monday",
-  tue: "Tuesday",
-  wed: "Wednesday",
-  thu: "Thursday",
-  fri: "Friday",
-  sat: "Saturday",
-};
 
 const DAY_ORDER: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
@@ -26,7 +17,14 @@ interface Props {
 }
 
 export function AvailabilityEditor({ availability, onChange, disabled }: Props) {
+  const { t } = useLanguage();
+  const a = t.admin;
   const [customSlot, setCustomSlot] = useState<Partial<Record<DayKey, string>>>({});
+
+  const dayLabels: Record<DayKey, string> = {
+    sun: a.daySun, mon: a.dayMon, tue: a.dayTue,
+    wed: a.dayWed, thu: a.dayThu, fri: a.dayFri, sat: a.daySat,
+  };
 
   const toggleDay = (day: DayKey) => {
     onChange({
@@ -66,7 +64,7 @@ export function AvailabilityEditor({ availability, onChange, disabled }: Props) 
             {/* Day header */}
             <div className="flex items-center justify-between px-4 py-2.5">
               <span className={`text-sm font-medium ${enabled ? "text-foreground" : "text-muted-foreground/50"}`}>
-                {DAY_LABELS[day]}
+                {dayLabels[day]}
               </span>
               <button
                 type="button"
@@ -76,18 +74,15 @@ export function AvailabilityEditor({ availability, onChange, disabled }: Props) 
                   enabled ? "bg-primary" : "bg-white/10"
                 } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               >
-                <span
-                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                    enabled ? "translate-x-5" : "translate-x-0.5"
-                  }`}
-                />
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                  enabled ? "translate-x-5" : "translate-x-0.5"
+                }`} />
               </button>
             </div>
 
-            {/* Slots (only when day is enabled) */}
+            {/* Slots */}
             {enabled && (
               <div className="px-4 pb-3 space-y-2">
-                {/* Existing slots */}
                 <div className="flex flex-wrap gap-1.5">
                   {slots.map((slot) => (
                     <span
@@ -103,25 +98,22 @@ export function AvailabilityEditor({ availability, onChange, disabled }: Props) 
                     </span>
                   ))}
                   {slots.length === 0 && (
-                    <span className="text-xs text-muted-foreground/50 italic">No slots added yet</span>
+                    <span className="text-xs text-muted-foreground/50 italic">{a.noSlotsYet}</span>
                   )}
                 </div>
 
-                {/* Add slot */}
                 {!disabled && (
                   <div className="flex items-center gap-2 pt-1">
-                    {/* Preset quick-add */}
                     <select
                       className="flex-1 bg-black/20 border border-white/10 text-foreground text-xs px-2 py-1.5 focus:outline-none focus:border-primary/50"
                       value=""
                       onChange={(e) => { if (e.target.value) addSlot(day, e.target.value); }}
                     >
-                      <option value="">+ Quick add…</option>
+                      <option value="">{a.quickAdd}</option>
                       {PRESET_SLOTS.filter((s) => !slots.includes(s)).map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
-                    {/* Custom time */}
                     <input
                       type="time"
                       value={customSlot[day] ?? ""}
