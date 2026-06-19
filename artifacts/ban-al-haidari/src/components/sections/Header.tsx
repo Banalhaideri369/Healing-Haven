@@ -174,14 +174,14 @@ export function Header() {
               onClick={() => setDrawerOpen(false)}
             />
 
-            {/* Drawer panel — slides from the right */}
+            {/* Drawer panel — slides from the left (where the hamburger button is) */}
             <motion.aside
               key="drawer"
-              initial={{ x: "100%" }}
+              initial={{ x: "-100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "100%" }}
+              exit={{ x: "-100%" }}
               transition={{ type: "tween", duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="fixed inset-y-0 right-0 z-[70] w-72 flex flex-col bg-[#0d0916] border-l border-primary/20 shadow-[−8px_0_60px_rgba(0,0,0,0.6)]"
+              className="fixed inset-y-0 left-0 z-[70] w-72 flex flex-col bg-[#0d0916] border-r border-primary/20 shadow-[8px_0_60px_rgba(0,0,0,0.6)]"
               dir={lang === "ar" ? "rtl" : "ltr"}
             >
               {/* Top gold line */}

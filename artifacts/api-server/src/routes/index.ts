@@ -4,6 +4,7 @@ import checkoutRouter from "./checkout";
 import notifyRouter from "./notify";
 import coursesRouter from "./courses";
 import bookingsRouter from "./bookingsRoute";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -12,5 +13,6 @@ router.use(checkoutRouter);
 router.use(notifyRouter);
 router.use(coursesRouter);
 router.use(bookingsRouter);
+router.use(settingsRouter);
 
 export default router;

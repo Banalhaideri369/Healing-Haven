@@ -61,3 +61,13 @@ export const bookingsTable = pgTable("bookings", {
 });
 
 export type BookingRow = typeof bookingsTable.$inferSelect;
+
+// ─── Site Settings ────────────────────────────────────────────────────────────
+
+export const siteSettingsTable = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull().default(""),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type SiteSettingRow = typeof siteSettingsTable.$inferSelect;

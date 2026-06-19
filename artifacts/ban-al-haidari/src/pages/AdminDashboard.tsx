@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   LogOut, ArrowLeft, ArrowRight, Users,
-  BookOpen, Video, ListOrdered, ChevronRight,
+  BookOpen, Video, ListOrdered, ChevronRight, Settings,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,8 +13,9 @@ import { useLocation } from "wouter";
 import { RecordedCoursesTab } from "@/components/admin/RecordedCoursesTab";
 import { OnlineCoursesTab } from "@/components/admin/OnlineCoursesTab";
 import { SubscriptionsTab } from "@/components/admin/SubscriptionsTab";
+import { WebsiteSettingsTab } from "@/components/admin/WebsiteSettingsTab";
 
-type MainTab = "courses" | "bookings" | "users";
+type MainTab = "courses" | "bookings" | "users" | "settings";
 type CoursesSubTab = "recorded" | "online";
 
 interface UserRow {
@@ -59,6 +60,13 @@ export default function AdminDashboard() {
 
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
 
+  const mainTabs = [
+    { id: "courses" as const, label: a.coursesManagement, icon: <BookOpen size={14} /> },
+    { id: "bookings" as const, label: a.subscriptionsBookings, icon: <ListOrdered size={14} /> },
+    { id: "users" as const, label: a.users, icon: <Users size={14} /> },
+    { id: "settings" as const, label: isRTL ? "إعدادات الموقع" : "Website Settings", icon: <Settings size={14} /> },
+  ];
+
   return (
     <div className="min-h-screen bg-[#0a060f]" dir={isRTL ? "rtl" : "ltr"}>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-secondary/6 rounded-full blur-[200px] pointer-events-none" />
@@ -96,14 +104,8 @@ export default function AdminDashboard() {
       {/* ── Main tabs ── */}
       <div className="border-b border-white/6 bg-black/20">
         <div className="max-w-7xl mx-auto px-6">
-          <nav className="flex gap-1">
-            {(
-              [
-                { id: "courses" as const, label: a.coursesManagement, icon: <BookOpen size={14} /> },
-                { id: "bookings" as const, label: a.subscriptionsBookings, icon: <ListOrdered size={14} /> },
-                { id: "users" as const, label: a.users, icon: <Users size={14} /> },
-              ] as const
-            ).map(({ id, label, icon }) => (
+          <nav className="flex gap-1 overflow-x-auto">
+            {mainTabs.map(({ id, label, icon }) => (
               <button
                 key={id}
                 onClick={() => setMainTab(id)}
@@ -214,6 +216,14 @@ export default function AdminDashboard() {
             )}
           </motion.div>
         )}
+
+        {/* ═══ WEBSITE SETTINGS ═══ */}
+        {mainTab === "settings" && (
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <WebsiteSettingsTab />
+          </motion.div>
+        )}
+
       </main>
     </div>
   );

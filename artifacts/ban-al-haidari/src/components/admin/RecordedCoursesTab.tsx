@@ -7,7 +7,6 @@ import { finalPrice } from "@/lib/courses";
 import {
   apiGetRecordedCourses,
   apiDeleteRecordedCourse,
-  apiSeedWorkshop,
   type ApiRecordedCourse,
 } from "@/lib/api";
 import { CourseFormModal } from "./CourseFormModal";
@@ -16,9 +15,6 @@ const fadeUp = {
   hidden: { opacity: 0, y: 16 },
   show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.4 } }),
 };
-
-// Module-level: persists across component remounts so deleted courses aren't re-seeded
-let workshopSeeded = false;
 
 export function RecordedCoursesTab() {
   const { t } = useLanguage();
@@ -33,15 +29,6 @@ export function RecordedCoursesTab() {
     try {
       const data = await apiGetRecordedCourses();
       setCourses(data);
-      if (data.length === 0 && !workshopSeeded) {
-        workshopSeeded = true;
-        const didSeed = await apiSeedWorkshop();
-        if (didSeed) {
-          const fresh = await apiGetRecordedCourses();
-          setCourses(fresh);
-          toast.success("تم إضافة الورشة الموجودة تلقائياً ✓");
-        }
-      }
     } catch {
       // silently keep old data
     } finally {

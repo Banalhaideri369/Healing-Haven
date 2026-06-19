@@ -189,3 +189,25 @@ export async function apiCreateBooking(data: {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<ApiBooking>;
 }
+
+// ─── Site Settings ─────────────────────────────────────────────────────────────
+
+export async function apiGetSettings(): Promise<Record<string, string>> {
+  try {
+    const res = await fetch(`${BASE}/settings`);
+    if (!res.ok) return {};
+    return res.json() as Promise<Record<string, string>>;
+  } catch {
+    return {};
+  }
+}
+
+export async function apiSetSetting(key: string, value: string): Promise<void> {
+  const headers = await adminHeaders();
+  const res = await fetch(`${BASE}/admin/settings/${encodeURIComponent(key)}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({ value }),
+  });
+  if (!res.ok) throw new Error(`Failed to save setting "${key}"`);
+}

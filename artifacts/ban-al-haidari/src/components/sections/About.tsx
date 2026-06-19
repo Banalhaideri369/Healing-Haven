@@ -1,8 +1,17 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { apiGetSettings } from "@/lib/api";
 
 export function About() {
   const { t, isRTL } = useLanguage();
+  const [profileImage, setProfileImage] = useState("/ban-photo.png");
+
+  useEffect(() => {
+    apiGetSettings()
+      .then((s) => { if (s.profile_image) setProfileImage(s.profile_image); })
+      .catch(() => {});
+  }, []);
 
   return (
     <section id="about" className="py-24 md:py-32 relative bg-background overflow-hidden">
@@ -27,9 +36,10 @@ export function About() {
               {/* Square crop container */}
               <div className="relative w-full aspect-square overflow-hidden rounded-sm drop-shadow-[0_8px_40px_rgba(212,175,55,0.25)]">
                 <img
-                  src="/ban-photo.png"
+                  src={profileImage}
                   alt="Ban Al-Haidari"
                   className="w-full h-full object-cover object-top"
+                  onError={(e) => { (e.target as HTMLImageElement).src = "/ban-photo.png"; }}
                 />
                 {/* Bottom fade */}
                 <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-background to-transparent" />
