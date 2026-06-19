@@ -24,14 +24,16 @@ export function About() {
               <div className="absolute inset-0 border border-primary/30 translate-x-4 translate-y-4 rounded-sm" />
               {/* Glow behind photo */}
               <div className="absolute inset-0 bg-primary/10 blur-2xl scale-90 rounded-full pointer-events-none" />
-              {/* Actual photo */}
-              <img
-                src="/ban-photo.png"
-                alt="Ban Al-Haidari"
-                className="relative w-full object-cover object-top rounded-sm drop-shadow-[0_8px_40px_rgba(212,175,55,0.25)]"
-              />
-              {/* Bottom fade */}
-              <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-background to-transparent rounded-b-sm" />
+              {/* Square crop container */}
+              <div className="relative w-full aspect-square overflow-hidden rounded-sm drop-shadow-[0_8px_40px_rgba(212,175,55,0.25)]">
+                <img
+                  src="/ban-photo.png"
+                  alt="Ban Al-Haidari"
+                  className="w-full h-full object-cover object-top"
+                />
+                {/* Bottom fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-1/4 bg-gradient-to-t from-background to-transparent" />
+              </div>
             </div>
           </motion.div>
 

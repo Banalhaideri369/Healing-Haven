@@ -174,6 +174,28 @@ function CalendarPicker({
   );
 }
 
+// ─── Time helpers ─────────────────────────────────────────────────────────────
+
+function to12h(time: string, isRTL: boolean): string {
+  const [h, m] = time.split(":").map(Number);
+  const period = h < 12 ? (isRTL ? "ص" : "AM") : (isRTL ? "م" : "PM");
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+function isTimeRange(slot: string): boolean {
+  const parts = slot.split("-");
+  return parts.length === 2 && /^\d{1,2}:\d{2}$/.test(parts[0]) && /^\d{1,2}:\d{2}$/.test(parts[1]);
+}
+
+function formatSlot(slot: string, isRTL: boolean): string {
+  if (isTimeRange(slot)) {
+    const [from, to] = slot.split("-");
+    return `${to12h(from, isRTL)} — ${to12h(to, isRTL)}`;
+  }
+  return to12h(slot, isRTL);
+}
+
 // ─── Time Slot Picker ─────────────────────────────────────────────────────────
 
 function TimeSlotPicker({
@@ -195,21 +217,26 @@ function TimeSlotPicker({
     );
   return (
     <div className="flex flex-wrap gap-2">
-      {slots.map((slot) => (
-        <button
-          key={slot}
-          type="button"
-          onClick={() => onSelect(slot)}
-          className={`flex items-center gap-1.5 px-3 py-2 border text-xs font-mono transition-all ${
-            selected === slot
-              ? "border-primary bg-primary/15 text-primary shadow-[0_0_8px_rgba(212,175,55,0.3)]"
-              : "border-white/10 text-muted-foreground hover:border-primary/40 hover:text-foreground"
-          }`}
-        >
-          <Clock size={11} />
-          {slot}
-        </button>
-      ))}
+      {slots.map((slot) => {
+        const isRange = isTimeRange(slot);
+        return (
+          <button
+            key={slot}
+            type="button"
+            onClick={() => onSelect(slot)}
+            className={`flex items-center gap-1.5 px-3 py-2 border text-xs transition-all ${
+              selected === slot
+                ? isRange
+                  ? "border-secondary bg-secondary/15 text-secondary shadow-[0_0_8px_rgba(120,80,200,0.3)]"
+                  : "border-primary bg-primary/15 text-primary shadow-[0_0_8px_rgba(212,175,55,0.3)]"
+                : "border-white/10 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            }`}
+          >
+            <Clock size={11} />
+            {formatSlot(slot, isRTL)}
+          </button>
+        );
+      })}
     </div>
   );
 }

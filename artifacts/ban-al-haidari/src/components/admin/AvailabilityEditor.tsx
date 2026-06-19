@@ -1,14 +1,36 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Clock, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { type Availability, type DayKey } from "@/lib/courses";
 
 const DAY_ORDER: DayKey[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
-const PRESET_SLOTS = [
-  "08:00","09:00","10:00","11:00","12:00",
-  "13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00",
-];
+// ── Time helpers ──────────────────────────────────────────────────────────────
+
+function to12h(time: string, isRTL: boolean): string {
+  const [h, m] = time.split(":").map(Number);
+  const period = h < 12 ? (isRTL ? "ص" : "AM") : (isRTL ? "م" : "PM");
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+function isTimeRange(slot: string): boolean {
+  const parts = slot.split("-");
+  return parts.length === 2 && /^\d{1,2}:\d{2}$/.test(parts[0]) && /^\d{1,2}:\d{2}$/.test(parts[1]);
+}
+
+function formatSlot(slot: string, isRTL: boolean): string {
+  if (isTimeRange(slot)) {
+    const [from, to] = slot.split("-");
+    return `${to12h(from, isRTL)} — ${to12h(to, isRTL)}`;
+  }
+  return to12h(slot, isRTL);
+}
+
+// Quick-add preset hours (single slots)
+const QUICK_HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+
+type AddMode = "single" | "range";
 
 interface Props {
   availability: Availability;
@@ -17,9 +39,13 @@ interface Props {
 }
 
 export function AvailabilityEditor({ availability, onChange, disabled }: Props) {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const a = t.admin;
-  const [customSlot, setCustomSlot] = useState<Partial<Record<DayKey, string>>>({});
+
+  const [addMode, setAddMode] = useState<Partial<Record<DayKey, AddMode>>>({});
+  const [customSingle, setCustomSingle] = useState<Partial<Record<DayKey, string>>>({});
+  const [rangeFrom, setRangeFrom] = useState<Partial<Record<DayKey, string>>>({});
+  const [rangeTo, setRangeTo] = useState<Partial<Record<DayKey, string>>>({});
 
   const dayLabels: Record<DayKey, string> = {
     sun: a.daySun, mon: a.dayMon, tue: a.dayTue,
@@ -27,42 +53,49 @@ export function AvailabilityEditor({ availability, onChange, disabled }: Props) 
   };
 
   const toggleDay = (day: DayKey) => {
-    onChange({
-      ...availability,
-      [day]: { ...availability[day], enabled: !availability[day].enabled },
-    });
+    onChange({ ...availability, [day]: { ...availability[day], enabled: !availability[day].enabled } });
   };
 
   const addSlot = (day: DayKey, slot: string) => {
     const trimmed = slot.trim();
     if (!trimmed || availability[day].slots.includes(trimmed)) return;
-    onChange({
-      ...availability,
-      [day]: { ...availability[day], slots: [...availability[day].slots, trimmed].sort() },
-    });
-    setCustomSlot((prev) => ({ ...prev, [day]: "" }));
+    onChange({ ...availability, [day]: { ...availability[day], slots: [...availability[day].slots, trimmed] } });
+  };
+
+  const addSingle = (day: DayKey, time: string) => {
+    if (!time) return;
+    addSlot(day, time);
+    setCustomSingle((p) => ({ ...p, [day]: "" }));
+  };
+
+  const addRange = (day: DayKey) => {
+    const from = rangeFrom[day];
+    const to = rangeTo[day];
+    if (!from || !to || from >= to) return;
+    addSlot(day, `${from}-${to}`);
+    setRangeFrom((p) => ({ ...p, [day]: "" }));
+    setRangeTo((p) => ({ ...p, [day]: "" }));
   };
 
   const removeSlot = (day: DayKey, slot: string) => {
-    onChange({
-      ...availability,
-      [day]: { ...availability[day], slots: availability[day].slots.filter((s) => s !== slot) },
-    });
+    onChange({ ...availability, [day]: { ...availability[day], slots: availability[day].slots.filter((s) => s !== slot) } });
   };
+
+  const getModeForDay = (day: DayKey): AddMode => addMode[day] ?? "single";
 
   return (
     <div className="space-y-3">
       {DAY_ORDER.map((day) => {
         const { enabled, slots } = availability[day];
+        const mode = getModeForDay(day);
+
         return (
           <div
             key={day}
-            className={`border rounded-none transition-colors ${
-              enabled ? "border-primary/30 bg-primary/5" : "border-white/5 bg-white/2"
-            }`}
+            className={`border transition-colors ${enabled ? "border-primary/30 bg-primary/5" : "border-white/5 bg-white/[0.02]"}`}
           >
-            {/* Day header */}
-            <div className="flex items-center justify-between px-4 py-2.5">
+            {/* Day toggle row */}
+            <div className="flex items-center justify-between px-4 py-3">
               <span className={`text-sm font-medium ${enabled ? "text-foreground" : "text-muted-foreground/50"}`}>
                 {dayLabels[day]}
               </span>
@@ -70,63 +103,133 @@ export function AvailabilityEditor({ availability, onChange, disabled }: Props) 
                 type="button"
                 onClick={() => !disabled && toggleDay(day)}
                 disabled={disabled}
-                className={`relative w-10 h-5 rounded-full transition-colors focus:outline-none ${
-                  enabled ? "bg-primary" : "bg-white/10"
-                } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                className={`relative w-10 h-5 rounded-full transition-colors ${enabled ? "bg-primary" : "bg-white/10"} ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
               >
-                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                  enabled ? "translate-x-5" : "translate-x-0.5"
-                }`} />
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0.5"}`} />
               </button>
             </div>
 
-            {/* Slots */}
+            {/* Slots area */}
             {enabled && (
-              <div className="px-4 pb-3 space-y-2">
+              <div className="px-4 pb-4 space-y-3">
+
+                {/* Existing slots */}
                 <div className="flex flex-wrap gap-1.5">
                   {slots.map((slot) => (
                     <span
                       key={slot}
-                      className="flex items-center gap-1 px-2.5 py-1 bg-primary/15 border border-primary/30 text-primary text-xs font-mono"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 border text-xs font-medium ${
+                        isTimeRange(slot)
+                          ? "bg-secondary/10 border-secondary/30 text-secondary"
+                          : "bg-primary/15 border-primary/30 text-primary"
+                      }`}
                     >
-                      {slot}
+                      {isTimeRange(slot) ? <ArrowRight size={10} /> : <Clock size={10} />}
+                      {formatSlot(slot, isRTL)}
                       {!disabled && (
-                        <button type="button" onClick={() => removeSlot(day, slot)} className="hover:text-red-400 transition-colors">
+                        <button type="button" onClick={() => removeSlot(day, slot)} className="hover:text-red-400 transition-colors ms-0.5">
                           <X size={10} />
                         </button>
                       )}
                     </span>
                   ))}
                   {slots.length === 0 && (
-                    <span className="text-xs text-muted-foreground/50 italic">{a.noSlotsYet}</span>
+                    <span className="text-xs text-muted-foreground/50 italic py-1">{a.noSlotsYet}</span>
                   )}
                 </div>
 
+                {/* Add controls */}
                 {!disabled && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <select
-                      className="flex-1 bg-black/20 border border-white/10 text-foreground text-xs px-2 py-1.5 focus:outline-none focus:border-primary/50"
-                      value=""
-                      onChange={(e) => { if (e.target.value) addSlot(day, e.target.value); }}
-                    >
-                      <option value="">{a.quickAdd}</option>
-                      {PRESET_SLOTS.filter((s) => !slots.includes(s)).map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="time"
-                      value={customSlot[day] ?? ""}
-                      onChange={(e) => setCustomSlot((prev) => ({ ...prev, [day]: e.target.value }))}
-                      className="bg-black/20 border border-white/10 text-foreground text-xs px-2 py-1.5 focus:outline-none focus:border-primary/50 w-28"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => customSlot[day] && addSlot(day, customSlot[day]!)}
-                      className="p-1.5 bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 transition-colors"
-                    >
-                      <Plus size={13} />
-                    </button>
+                  <div className="space-y-2">
+                    {/* Mode toggle tabs */}
+                    <div className="flex border border-white/8 rounded-sm overflow-hidden w-fit text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setAddMode((p) => ({ ...p, [day]: "single" }))}
+                        className={`px-3 py-1.5 uppercase tracking-wider transition-colors border-e border-white/8 flex items-center gap-1 ${
+                          mode === "single" ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                        }`}
+                      >
+                        <Clock size={10} />
+                        {isRTL ? "وقت محدد" : "Single"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAddMode((p) => ({ ...p, [day]: "range" }))}
+                        className={`px-3 py-1.5 uppercase tracking-wider transition-colors flex items-center gap-1 ${
+                          mode === "range" ? "bg-secondary/20 text-secondary" : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                        }`}
+                      >
+                        <ArrowRight size={10} />
+                        {isRTL ? "نطاق زمني" : "Range"}
+                      </button>
+                    </div>
+
+                    {/* Single slot controls */}
+                    {mode === "single" && (
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="flex-1 bg-black/20 border border-white/10 text-foreground text-xs px-2 py-2 focus:outline-none focus:border-primary/50"
+                          value=""
+                          onChange={(e) => { if (e.target.value) addSingle(day, e.target.value); }}
+                        >
+                          <option value="">{isRTL ? "اختر ساعة" : "Quick add..."}</option>
+                          {QUICK_HOURS.map((h) => {
+                            const val = `${String(h).padStart(2, "0")}:00`;
+                            if (slots.includes(val)) return null;
+                            const period = h < 12 ? (isRTL ? "ص" : "AM") : (isRTL ? "م" : "PM");
+                            const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+                            return <option key={val} value={val}>{h12}:00 {period}</option>;
+                          })}
+                        </select>
+                        <input
+                          type="time"
+                          value={customSingle[day] ?? ""}
+                          onChange={(e) => setCustomSingle((p) => ({ ...p, [day]: e.target.value }))}
+                          className="bg-black/20 border border-white/10 text-foreground text-xs px-2 py-2 focus:outline-none focus:border-primary/50 w-28"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => customSingle[day] && addSingle(day, customSingle[day]!)}
+                          className="p-2 bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 transition-colors"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Range controls */}
+                    {mode === "range" && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{isRTL ? "من" : "From"}</span>
+                          <input
+                            type="time"
+                            value={rangeFrom[day] ?? ""}
+                            onChange={(e) => setRangeFrom((p) => ({ ...p, [day]: e.target.value }))}
+                            className="flex-1 min-w-0 bg-black/20 border border-white/10 text-foreground text-xs px-2 py-2 focus:outline-none focus:border-secondary/50"
+                          />
+                        </div>
+                        <ArrowRight size={12} className="text-muted-foreground flex-shrink-0" />
+                        <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">{isRTL ? "إلى" : "To"}</span>
+                          <input
+                            type="time"
+                            value={rangeTo[day] ?? ""}
+                            onChange={(e) => setRangeTo((p) => ({ ...p, [day]: e.target.value }))}
+                            className="flex-1 min-w-0 bg-black/20 border border-white/10 text-foreground text-xs px-2 py-2 focus:outline-none focus:border-secondary/50"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => addRange(day)}
+                          disabled={!rangeFrom[day] || !rangeTo[day] || (rangeFrom[day]! >= rangeTo[day]!)}
+                          className="p-2 bg-secondary/20 border border-secondary/30 text-secondary hover:bg-secondary/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

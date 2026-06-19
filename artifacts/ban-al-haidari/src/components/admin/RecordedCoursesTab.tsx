@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Send, Tag, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -17,6 +17,9 @@ const fadeUp = {
   show: (i: number) => ({ opacity: 1, y: 0, transition: { delay: i * 0.06, duration: 0.4 } }),
 };
 
+// Module-level: persists across component remounts so deleted courses aren't re-seeded
+let workshopSeeded = false;
+
 export function RecordedCoursesTab() {
   const { t } = useLanguage();
   const a = t.admin;
@@ -26,14 +29,12 @@ export function RecordedCoursesTab() {
   const [showAdd, setShowAdd] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const seededRef = useRef(false);
-
   const load = useCallback(async () => {
     try {
       const data = await apiGetRecordedCourses();
       setCourses(data);
-      if (data.length === 0 && !seededRef.current) {
-        seededRef.current = true;
+      if (data.length === 0 && !workshopSeeded) {
+        workshopSeeded = true;
         const didSeed = await apiSeedWorkshop();
         if (didSeed) {
           const fresh = await apiGetRecordedCourses();

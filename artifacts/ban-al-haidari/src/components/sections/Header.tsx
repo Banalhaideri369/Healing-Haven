@@ -9,7 +9,7 @@ import { useLocation } from "wouter";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { t, toggleLang, lang } = useLanguage();
@@ -23,6 +23,7 @@ export function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close user menu on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -32,6 +33,12 @@ export function Header() {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [drawerOpen]);
 
   const navLinks = [
     { name: t.nav.about, href: "#about" },
@@ -43,23 +50,11 @@ export function Header() {
 
   const displayName = user?.displayName ?? user?.email?.split("@")[0] ?? t.auth.myAccount;
 
-  const handleGoProfile = () => {
-    setUserMenuOpen(false);
-    setMenuOpen(false);
-    navigate("/profile");
-  };
+  const closeAll = () => { setDrawerOpen(false); setUserMenuOpen(false); };
 
-  const handleGoAdmin = () => {
-    setUserMenuOpen(false);
-    setMenuOpen(false);
-    navigate("/admin");
-  };
-
-  const handleLogout = async () => {
-    setUserMenuOpen(false);
-    setMenuOpen(false);
-    await logOut();
-  };
+  const handleGoProfile = () => { closeAll(); navigate("/profile"); };
+  const handleGoAdmin = () => { closeAll(); navigate("/admin"); };
+  const handleLogout = async () => { closeAll(); await logOut(); };
 
   return (
     <>
@@ -85,16 +80,8 @@ export function Header() {
             </div>
           </a>
 
-          {/* Right side — always visible: book + auth + lang + hamburger */}
+          {/* Right side controls */}
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Book a session — visible on md+ */}
-            <a
-              href="#products"
-              className="hidden md:inline-flex px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-xs font-semibold"
-              data-testid="link-nav-book"
-            >
-              {t.nav.book}
-            </a>
 
             {/* User account */}
             {user ? (
@@ -122,32 +109,17 @@ export function Header() {
                         <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
                       </div>
                       <div className="p-2 space-y-0.5">
-                        <button
-                          onClick={handleGoProfile}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-foreground/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
-                          data-testid="button-goto-profile"
-                        >
-                          <User size={13} />
-                          {lang === "ar" ? "ملفي الشخصي" : "My Profile"}
+                        <button onClick={handleGoProfile} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-foreground/80 hover:text-primary hover:bg-primary/5 transition-colors text-start">
+                          <User size={13} />{lang === "ar" ? "ملفي الشخصي" : "My Profile"}
                         </button>
                         {isAdmin && (
-                          <button
-                            onClick={handleGoAdmin}
-                            className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-primary/80 hover:text-primary hover:bg-primary/5 transition-colors text-start"
-                            data-testid="button-goto-admin"
-                          >
-                            <LayoutDashboard size={13} />
-                            {lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}
+                          <button onClick={handleGoAdmin} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-primary/80 hover:text-primary hover:bg-primary/5 transition-colors text-start">
+                            <LayoutDashboard size={13} />{lang === "ar" ? "لوحة الإدارة" : "Admin Panel"}
                           </button>
                         )}
                         <div className="h-px bg-primary/10 my-1" />
-                        <button
-                          onClick={handleLogout}
-                          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors text-start"
-                          data-testid="button-logout"
-                        >
-                          <LogOut size={13} />
-                          {t.auth.logout}
+                        <button onClick={handleLogout} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-red-400 hover:bg-red-500/5 transition-colors text-start">
+                          <LogOut size={13} />{t.auth.logout}
                         </button>
                       </div>
                       <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
@@ -174,82 +146,95 @@ export function Header() {
               {lang === "ar" ? "EN" : "عربي"}
             </button>
 
-            {/* Hamburger — ALL screen sizes */}
+            {/* Hamburger — all screen sizes */}
             <button
-              className="flex flex-col items-center justify-center w-9 h-9 gap-[5px] text-foreground hover:text-primary transition-colors"
-              onClick={() => setMenuOpen(!menuOpen)}
+              className="w-10 h-10 flex items-center justify-center text-foreground hover:text-primary border border-white/10 hover:border-primary/40 transition-all rounded-sm"
+              onClick={() => setDrawerOpen(true)}
               data-testid="button-menu"
-              aria-label="Toggle menu"
+              aria-label="Open navigation"
             >
-              <AnimatePresence mode="wait" initial={false}>
-                {menuOpen ? (
-                  <motion.span
-                    key="close"
-                    initial={{ opacity: 0, rotate: -90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: 90 }}
-                    transition={{ duration: 0.15 }}
-                  >
-                    <X size={22} />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="open"
-                    initial={{ opacity: 0, rotate: 90 }}
-                    animate={{ opacity: 1, rotate: 0 }}
-                    exit={{ opacity: 0, rotate: -90 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex flex-col gap-[5px]"
-                  >
-                    <span className="w-5 h-[1.5px] bg-current block" />
-                    <span className="w-5 h-[1.5px] bg-current block" />
-                    <span className="w-5 h-[1.5px] bg-current block" />
-                  </motion.span>
-                )}
-              </AnimatePresence>
+              <Menu size={20} />
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Full-width dropdown nav — all screen sizes */}
-        <AnimatePresence>
-          {menuOpen && (
+      {/* ── Side Drawer ────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            {/* Dark overlay */}
             <motion.div
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.2 }}
-              className="absolute top-full left-0 w-full bg-background/97 backdrop-blur-lg border-b border-primary/20 shadow-2xl"
+              key="overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+              onClick={() => setDrawerOpen(false)}
+            />
+
+            {/* Drawer panel — slides from the right */}
+            <motion.aside
+              key="drawer"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="fixed inset-y-0 right-0 z-[70] w-72 flex flex-col bg-[#0d0916] border-l border-primary/20 shadow-[−8px_0_60px_rgba(0,0,0,0.6)]"
+              dir={lang === "ar" ? "rtl" : "ltr"}
             >
+              {/* Top gold line */}
+              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
+
+              {/* Drawer header */}
+              <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-white/6">
+                <img src="/logo.png" alt="Logo" className="h-14 object-contain drop-shadow-[0_0_14px_rgba(212,175,55,0.5)]" />
+                <button
+                  onClick={() => setDrawerOpen(false)}
+                  className="w-9 h-9 flex items-center justify-center border border-white/10 text-muted-foreground hover:text-primary hover:border-primary/40 transition-all rounded-sm"
+                  aria-label="Close menu"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
               {/* Nav links */}
-              <nav className="container mx-auto px-6 py-6 flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-4 sm:gap-6">
-                {navLinks.map((link) => (
-                  <a
+              <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+                {navLinks.map((link, i) => (
+                  <motion.a
                     key={link.name}
                     href={link.href}
-                    className="text-sm uppercase tracking-[0.2em] font-medium text-foreground hover:text-primary transition-colors"
-                    onClick={() => setMenuOpen(false)}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.05 + i * 0.06, duration: 0.25 }}
+                    onClick={() => setDrawerOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium tracking-[0.12em] uppercase text-foreground/75 hover:text-primary hover:bg-primary/5 rounded-sm transition-all group"
                     data-testid={`link-nav-${link.href.replace("#", "")}`}
                   >
+                    <span className="w-4 h-[1px] bg-primary/40 group-hover:bg-primary group-hover:w-6 transition-all duration-300" />
                     {link.name}
-                  </a>
+                  </motion.a>
                 ))}
               </nav>
 
-              {/* Book button */}
-              <div className="container mx-auto px-6 pb-6 flex justify-center">
+              {/* CTA button */}
+              <div className="px-6 pb-8 pt-4 border-t border-white/6">
                 <a
                   href="#products"
-                  className="px-8 py-3 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-widest text-sm font-semibold"
-                  onClick={() => setMenuOpen(false)}
+                  onClick={() => setDrawerOpen(false)}
+                  className="block w-full text-center py-3.5 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-[0.2em] text-sm font-semibold rounded-sm"
                 >
                   {t.nav.book}
                 </a>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </header>
+
+              {/* Bottom gold line */}
+              <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
     </>
