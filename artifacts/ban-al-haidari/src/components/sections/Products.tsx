@@ -253,21 +253,21 @@ function SmallCourseCard({ course, isRTL }: { course: ApiRecordedCourse; isRTL: 
     <div className="relative bg-card border border-primary/15 overflow-hidden hover:border-primary/40 transition-colors group h-full flex flex-col">
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
-      {/* Image */}
-      <div className="aspect-video bg-black/30 overflow-hidden flex-shrink-0">
-        {course.image ? (
+      {/* Image — full natural aspect ratio, no cropping */}
+      {course.image ? (
+        <div className="w-full bg-[#0b0712] flex-shrink-0">
           <img
             src={course.image}
             alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-auto block"
             onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-primary/5">
-            <Tag size={28} className="text-primary/20" />
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="w-full h-44 bg-primary/5 flex items-center justify-center border-b border-primary/10 flex-shrink-0">
+          <Tag size={28} className="text-primary/20" />
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-6 flex flex-col flex-1" dir={isRTL ? "rtl" : "ltr"}>
@@ -320,21 +320,21 @@ function OnlineCourseCard({
     <div className="relative bg-card border border-secondary/20 overflow-hidden hover:border-secondary/40 transition-colors group h-full flex flex-col">
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-secondary/60 to-transparent" />
 
-      {/* Image */}
-      <div className="aspect-video bg-black/30 overflow-hidden flex-shrink-0">
-        {course.image ? (
+      {/* Image — full natural aspect ratio, no cropping */}
+      {course.image ? (
+        <div className="w-full bg-[#0b0712] flex-shrink-0">
           <img
             src={course.image}
             alt={course.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-auto block"
             onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-secondary/5">
-            <Calendar size={28} className="text-secondary/30" />
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="w-full h-44 bg-secondary/5 flex items-center justify-center border-b border-secondary/10 flex-shrink-0">
+          <Calendar size={28} className="text-secondary/30" />
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-6 flex flex-col flex-1" dir={isRTL ? "rtl" : "ltr"}>
