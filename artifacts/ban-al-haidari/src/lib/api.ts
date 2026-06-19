@@ -190,6 +190,64 @@ export async function apiCreateBooking(data: {
   return res.json() as Promise<ApiBooking>;
 }
 
+// ─── Hero Banners ──────────────────────────────────────────────────────────────
+
+export interface ApiBanner {
+  id: string;
+  image: string;
+  title: string;
+  status: "available" | "coming_soon";
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function apiGetBanners(): Promise<ApiBanner[]> {
+  try {
+    const res = await fetch(`${BASE}/banners`);
+    if (!res.ok) return [];
+    return res.json() as Promise<ApiBanner[]>;
+  } catch {
+    return [];
+  }
+}
+
+export async function apiCreateBanner(data: {
+  image: string;
+  title: string;
+  status: "available" | "coming_soon";
+  sortOrder?: number;
+}): Promise<ApiBanner> {
+  const res = await fetch(`${BASE}/admin/banners`, {
+    method: "POST",
+    headers: await adminHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiBanner>;
+}
+
+export async function apiUpdateBanner(
+  id: string,
+  data: Partial<{ image: string; title: string; status: string; sortOrder: number }>,
+): Promise<ApiBanner> {
+  const res = await fetch(`${BASE}/admin/banners/${id}`, {
+    method: "PATCH",
+    headers: await adminHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiBanner>;
+}
+
+export async function apiDeleteBanner(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/admin/banners/${id}`, {
+    method: "DELETE",
+    headers: await adminHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 // ─── Site Settings ─────────────────────────────────────────────────────────────
 
 export async function apiGetSettings(): Promise<Record<string, string>> {

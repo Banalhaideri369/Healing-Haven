@@ -28,9 +28,9 @@ export const translations = {
       p3: "أجمع في عملي بين الكوتشينك وتقنيات العمل مع العقل الباطن وأساليب التحول الشخصي لمساعدة النساء على تجاوز العوائق الداخلية، واكتشاف قوتهن الحقيقية، وخلق نتائج أكثر انسجاماً مع أحلامهن ورؤيتهن للحياة.",
       p4: "هدفي ليس أن أعطيك حلولاً مؤقتة، بل أن أساعدك على بناء أساس داخلي من الوعي والثقة والاستحقاق يدعمك في جميع جوانب حياتك.",
       quote: "لأن المرأة الواعية عندما تتحول من الداخل، يتغير عالمها بالكامل.",
-      stat1Value: "+15",
+      stat1Value: "+5",
       stat1Label: "عاماً من الخبرة",
-      stat2Value: "+10 آلاف",
+      stat2Value: "+3 آلاف",
       stat2Label: "حياة تغيّرت",
     },
     mission: {
@@ -335,9 +335,9 @@ export const translations = {
       p3: "In my work, I combine coaching, subconscious mind techniques, and personal transformation methods to help women overcome inner barriers, discover their true power, and create results more aligned with their dreams and vision for life.",
       p4: "My goal is not to give you temporary solutions, but to help you build an inner foundation of awareness, confidence, and worthiness that supports you in all areas of your life.",
       quote: "Because when an aware woman transforms from within, her entire world changes.",
-      stat1Value: "15+",
+      stat1Value: "5+",
       stat1Label: "Years Experience",
-      stat2Value: "10k+",
+      stat2Value: "3k+",
       stat2Label: "Lives Touched",
     },
     mission: {

@@ -1,6 +1,7 @@
 import React from "react";
 import { Header } from "@/components/sections/Header";
 import { Hero } from "@/components/sections/Hero";
+import { HeroBanner } from "@/components/sections/HeroBanner";
 import { About } from "@/components/sections/About";
 import { Mission } from "@/components/sections/Mission";
 import { Products } from "@/components/sections/Products";
@@ -13,6 +14,7 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <Hero />
+        <HeroBanner />
         <About />
         <Mission />
         <Products />

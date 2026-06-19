@@ -62,6 +62,20 @@ export const bookingsTable = pgTable("bookings", {
 
 export type BookingRow = typeof bookingsTable.$inferSelect;
 
+// ─── Hero Banners ─────────────────────────────────────────────────────────────
+
+export const heroBannersTable = pgTable("hero_banners", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  image: text("image").notNull().default(""),
+  title: text("title").notNull().default(""),
+  status: text("status").notNull().default("coming_soon"), // "available" | "coming_soon"
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type HeroBannerRow = typeof heroBannersTable.$inferSelect;
+
 // ─── Site Settings ────────────────────────────────────────────────────────────
 
 export const siteSettingsTable = pgTable("site_settings", {
