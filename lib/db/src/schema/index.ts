@@ -89,6 +89,18 @@ export const pushSubscriptionsTable = pgTable("push_subscriptions", {
 
 export type PushSubscriptionRow = typeof pushSubscriptionsTable.$inferSelect;
 
+// ─── Client Testimonials ──────────────────────────────────────────────────────
+
+export const clientTestimonialsTable = pgTable("client_testimonials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clientName: text("client_name").notNull().default(""),
+  content: text("content").notNull(),
+  rating: integer("rating").notNull().default(5),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type ClientTestimonialRow = typeof clientTestimonialsTable.$inferSelect;
+
 // ─── Site Settings ────────────────────────────────────────────────────────────
 
 export const siteSettingsTable = pgTable("site_settings", {

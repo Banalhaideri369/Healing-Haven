@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut, ArrowLeft, ArrowRight, Save, User, Sparkles,
-  Clock, CheckCircle2, KeyRound, Eye, EyeOff, ShieldCheck,
+  Clock, KeyRound, Eye, EyeOff, ShieldCheck,
+  BookOpen, CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { logOut, changePassword, updateDisplayName } from "@/lib/auth";
 import { getUserProfile, upsertUserProfile, addActivity, UserProfile } from "@/lib/userProfile";
+import { apiGetMyBookings, ApiBooking } from "@/lib/api";
 import { useLocation } from "wouter";
 
 const fadeUp = {
@@ -62,6 +64,10 @@ export default function Profile() {
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [changingPw, setChangingPw] = useState(false);
 
+  // ── My Bookings ────────────────────────────────────────────────────────────
+  const [myBookings, setMyBookings] = useState<ApiBooking[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+
   const displayName = profile.displayName || user?.displayName || user?.email?.split("@")[0] || t.auth.myAccount;
   const joinedDate = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString(
@@ -100,6 +106,14 @@ export default function Profile() {
       })
       .catch(() => { setLoadError(true); setLoadingProfile(false); });
   }, [user, isRTL]);
+
+  useEffect(() => {
+    if (!user) { setBookingsLoading(false); return; }
+    setBookingsLoading(true);
+    apiGetMyBookings()
+      .then(setMyBookings)
+      .finally(() => setBookingsLoading(false));
+  }, [user]);
 
   // ── Profile save — syncs name to Firebase Auth + Firestore ────────────────
   const handleSave = async () => {
@@ -487,19 +501,68 @@ export default function Profile() {
 
           </motion.div>
 
-          {/* RIGHT COLUMN — Stats + Activity */}
+          {/* RIGHT COLUMN — Enrolled Courses + Activity */}
           <motion.div custom={2} variants={fadeUp} initial="hidden" animate="show" className="space-y-6">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { icon: Sparkles, label: isRTL ? "رحلتي" : "My Journey", value: "✦" },
-                { icon: CheckCircle2, label: isRTL ? "حسابي" : "Account", value: "∞" },
-              ].map(({ icon: Icon, label, value }) => (
-                <div key={label} className="border border-primary/15 bg-white/[0.02] p-4 flex flex-col items-center justify-center gap-2 text-center">
-                  <Icon size={18} className="text-primary/60" />
-                  <p className="text-xl font-cormorant text-primary">{value}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+
+            {/* Enrolled Courses */}
+            <div className="border border-primary/15 bg-white/[0.02] p-5 relative">
+              <div className="flex items-center gap-2 text-primary mb-4">
+                <BookOpen size={15} />
+                <h2 className="text-xs uppercase tracking-widest font-semibold">
+                  {isRTL ? "دوراتي وجلساتي المشتركة" : "My Enrolled Courses & Sessions"}
+                </h2>
+                {myBookings.length > 0 && (
+                  <span className="ms-auto text-[10px] bg-primary/15 text-primary px-2 py-0.5 rounded-full">
+                    {myBookings.length}
+                  </span>
+                )}
+              </div>
+
+              {bookingsLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground/50 text-xs py-2">
+                  <div className="w-3 h-3 border border-primary/20 border-t-primary rounded-full animate-spin" />
+                  {isRTL ? "جاري التحميل..." : "Loading..."}
                 </div>
-              ))}
+              ) : myBookings.length === 0 ? (
+                <div className="text-center py-6">
+                  <Sparkles size={22} className="text-primary/20 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground/40 italic">
+                    {isRTL ? "لا توجد دورات مسجلة بعد" : "No enrolled courses yet"}
+                  </p>
+                </div>
+              ) : (
+                <ul className="space-y-2.5">
+                  {myBookings.map((b) => (
+                    <li key={b.id} className="border border-primary/10 bg-white/[0.01] p-3 flex flex-col gap-1.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs text-foreground/90 font-medium leading-snug flex-1">{b.courseTitle}</span>
+                        <span className={`text-[9px] uppercase tracking-widest font-bold px-1.5 py-0.5 flex-shrink-0 ${
+                          b.paymentStatus === "paid" || b.paymentStatus === "demo_paid"
+                            ? "bg-emerald-500/10 text-emerald-400"
+                            : "bg-primary/10 text-primary/60"
+                        }`}>
+                          {b.paymentStatus === "paid" || b.paymentStatus === "demo_paid"
+                            ? (isRTL ? "مؤكد" : "Confirmed")
+                            : (isRTL ? "قيد الانتظار" : "Pending")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">
+                        <span className="flex items-center gap-1">
+                          <CalendarDays size={9} />
+                          {new Date(b.createdAt).toLocaleDateString(isRTL ? "ar-SA" : "en-GB", {
+                            day: "numeric", month: "short", year: "numeric",
+                          })}
+                        </span>
+                        <span className="uppercase tracking-widest text-primary/30">
+                          {b.courseType === "recorded"
+                            ? (isRTL ? "مسجل" : "Recorded")
+                            : (isRTL ? "جلسة" : "Session")}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Recent Activity */}

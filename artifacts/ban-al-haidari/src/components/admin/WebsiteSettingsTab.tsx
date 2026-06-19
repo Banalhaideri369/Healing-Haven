@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   Loader2, Upload, User, Save, CheckCircle2,
   Megaphone, Plus, Trash2, ToggleLeft, ToggleRight, Pencil, X,
+  MessageSquareQuote, Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,7 +10,8 @@ import {
   apiGetSettings, apiSetSetting,
   apiGetBanners, apiCreateBanner, apiUpdateBanner, apiDeleteBanner,
   apiGetRecordedCourses, apiGetOnlineCourses,
-  type ApiBanner,
+  apiGetTestimonials, apiCreateTestimonial, apiUpdateTestimonial, apiDeleteTestimonial,
+  type ApiBanner, type ApiTestimonial,
 } from "@/lib/api";
 
 // ── Image compression ─────────────────────────────────────────────────────────
@@ -45,6 +47,8 @@ const EMPTY_FORM = {
   linkedCourseId: "",
 };
 
+const EMPTY_TESTIMONIAL = { clientName: "", content: "", rating: 5 };
+
 export function WebsiteSettingsTab() {
   const { isRTL } = useLanguage();
 
@@ -59,6 +63,15 @@ export function WebsiteSettingsTab() {
 
   // ── Courses for the linked-course selector ────────────────────────────────
   const [courses, setCourses] = useState<{ id: string; title: string; type: "recorded" | "online" }[]>([]);
+
+  // ── Testimonials state ────────────────────────────────────────────────────
+  const [testimonials, setTestimonials] = useState<ApiTestimonial[]>([]);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+  const [tForm, setTForm] = useState(EMPTY_TESTIMONIAL);
+  const [tEditingId, setTEditingId] = useState<string | null>(null);
+  const [tSaving, setTSaving] = useState(false);
+  const [tDeletingId, setTDeletingId] = useState<string | null>(null);
+  const [tConfirmDelete, setTConfirmDelete] = useState<string | null>(null);
 
   // ── Banner state ──────────────────────────────────────────────────────────
   const [bannerEnabled, setBannerEnabled] = useState(false);
@@ -94,6 +107,10 @@ export function WebsiteSettingsTab() {
         ]);
       })
       .catch(() => {});
+
+    apiGetTestimonials()
+      .then(setTestimonials)
+      .finally(() => setTestimonialsLoading(false));
   }, []);
 
   // ── Profile image handlers ────────────────────────────────────────────────
@@ -186,6 +203,44 @@ export function WebsiteSettingsTab() {
   };
 
   const cancelEdit = () => { setEditingId(null); setForm(EMPTY_FORM); };
+
+  // ── Testimonials CRUD ─────────────────────────────────────────────────────
+  const handleTestimonialSave = async () => {
+    if (!tForm.content.trim()) { toast.error(isRTL ? "نص الرأي مطلوب" : "Review text is required"); return; }
+    setTSaving(true);
+    try {
+      if (tEditingId) {
+        const updated = await apiUpdateTestimonial(tEditingId, tForm);
+        setTestimonials((prev) => prev.map((t) => (t.id === tEditingId ? updated : t)));
+        toast.success(isRTL ? "تم تحديث الرأي ✓" : "Review updated ✓");
+        setTEditingId(null);
+      } else {
+        const created = await apiCreateTestimonial(tForm);
+        setTestimonials((prev) => [created, ...prev]);
+        toast.success(isRTL ? "تم إضافة الرأي ✓" : "Review added ✓");
+      }
+      setTForm(EMPTY_TESTIMONIAL);
+    } catch { toast.error(isRTL ? "فشل الحفظ" : "Save failed"); }
+    finally { setTSaving(false); }
+  };
+
+  const startEditTestimonial = (t: ApiTestimonial) => {
+    setTEditingId(t.id);
+    setTForm({ clientName: t.clientName, content: t.content, rating: t.rating });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelEditTestimonial = () => { setTEditingId(null); setTForm(EMPTY_TESTIMONIAL); };
+
+  const handleDeleteTestimonial = async (id: string) => {
+    setTDeletingId(id);
+    try {
+      await apiDeleteTestimonial(id);
+      setTestimonials((prev) => prev.filter((t) => t.id !== id));
+      toast.success(isRTL ? "تم الحذف" : "Deleted");
+    } catch { toast.error(isRTL ? "فشل الحذف" : "Delete failed"); }
+    finally { setTDeletingId(null); setTConfirmDelete(null); }
+  };
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -421,6 +476,151 @@ export function WebsiteSettingsTab() {
                         <Trash2 size={11} />
                       </button>
                     )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SettingCard>
+
+        {/* ═══ Testimonials Management ═══ */}
+        <SettingCard
+          icon={<MessageSquareQuote size={14} className="text-primary" />}
+          title={isRTL ? "إدارة آراء العملاء" : "Manage Testimonials"}
+          subtitle={isRTL ? "تُعرض في قسم «آراء العملاء» على الصفحة الرئيسية" : "Displayed in the Testimonials section on the homepage"}
+        >
+          {/* Add / Edit form */}
+          <div className="border border-white/8 p-4 mb-5 space-y-4 bg-black/10">
+            <p className="text-[11px] uppercase tracking-widest text-primary/70 font-semibold">
+              {tEditingId ? (isRTL ? "تعديل الرأي" : "Edit Review") : (isRTL ? "إضافة رأي جديد" : "Add New Review")}
+            </p>
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
+                {isRTL ? "اسم العميل (اختياري)" : "Client Name (optional)"}
+              </label>
+              <input
+                type="text"
+                value={tForm.clientName}
+                onChange={(e) => setTForm((f) => ({ ...f, clientName: e.target.value }))}
+                placeholder={isRTL ? "مثال: سارة م." : "e.g. Sarah M."}
+                className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-2.5 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
+                {isRTL ? "نص الرأي" : "Review Text"} <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                rows={4}
+                value={tForm.content}
+                onChange={(e) => setTForm((f) => ({ ...f, content: e.target.value }))}
+                placeholder={isRTL ? "اكتبي نص الرأي هنا..." : "Write the review text here..."}
+                className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-2.5 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
+                {isRTL ? "التقييم (نجوم)" : "Rating (stars)"}
+              </label>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setTForm((f) => ({ ...f, rating: n }))}
+                    className="transition-transform hover:scale-110"
+                  >
+                    <Star
+                      size={20}
+                      className={n <= tForm.rating ? "fill-primary text-primary" : "fill-white/10 text-white/15"}
+                    />
+                  </button>
+                ))}
+                <span className="text-xs text-muted-foreground ms-2">{tForm.rating}/5</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={handleTestimonialSave}
+                disabled={tSaving || !tForm.content.trim()}
+                className="flex items-center gap-2 px-5 py-2 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-wider hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {tSaving ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+                {tSaving ? (isRTL ? "جاري الحفظ..." : "Saving...") : tEditingId ? (isRTL ? "تحديث الرأي" : "Update Review") : (isRTL ? "إضافة الرأي" : "Add Review")}
+              </button>
+              {tEditingId && (
+                <button onClick={cancelEditTestimonial} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  {isRTL ? "إلغاء" : "Cancel"}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Testimonials list */}
+          {testimonialsLoading ? (
+            <div className="flex justify-center py-6"><Loader2 size={18} className="animate-spin text-primary/40" /></div>
+          ) : testimonials.length === 0 ? (
+            <div className="text-center py-6 border border-dashed border-white/8">
+              <p className="text-xs text-muted-foreground/40">{isRTL ? "لا توجد آراء بعد. أضف واحداً أعلاه." : "No reviews yet. Add one above."}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[11px] uppercase tracking-widest text-muted-foreground mb-3">
+                {isRTL ? "الآراء الحالية" : "Current Reviews"} ({testimonials.length})
+              </p>
+              {testimonials.map((t) => (
+                <div
+                  key={t.id}
+                  className={`p-3 border transition-colors ${tEditingId === t.id ? "border-primary/40 bg-primary/5" : "border-white/8 bg-black/10"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-xs font-semibold text-foreground">{t.clientName || (isRTL ? "مجهول" : "Anonymous")}</p>
+                        <div className="flex gap-0.5">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Star key={i} size={9} className={i < t.rating ? "fill-primary text-primary" : "fill-white/10 text-white/10"} />
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2">{t.content}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => startEditTestimonial(t)}
+                        className="w-7 h-7 flex items-center justify-center border border-white/15 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
+                      >
+                        <Pencil size={11} />
+                      </button>
+                      {tConfirmDelete === t.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleDeleteTestimonial(t.id)}
+                            disabled={tDeletingId === t.id}
+                            className="text-[10px] text-red-400 border border-red-400/30 px-2 py-1 hover:bg-red-400/10 transition-colors"
+                          >
+                            {tDeletingId === t.id ? <Loader2 size={9} className="animate-spin" /> : (isRTL ? "نعم" : "Yes")}
+                          </button>
+                          <button
+                            onClick={() => setTConfirmDelete(null)}
+                            className="text-[10px] text-muted-foreground border border-white/10 px-2 py-1"
+                          >
+                            {isRTL ? "لا" : "No"}
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setTConfirmDelete(t.id)}
+                          className="w-7 h-7 flex items-center justify-center border border-white/15 text-muted-foreground hover:text-red-400 hover:border-red-400/30 transition-colors"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

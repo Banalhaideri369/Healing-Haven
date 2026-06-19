@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, bookingsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
-import { requireAdmin } from "../lib/adminAuth";
+import { desc, eq } from "drizzle-orm";
+import { requireAdmin, requireAuth } from "../lib/adminAuth";
 
 const router = Router();
 
@@ -37,6 +37,22 @@ router.post("/bookings", async (req, res) => {
     res.status(201).json(rows[0]);
   } catch (err) {
     req.log.error({ err }, "POST /bookings");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+// ── User: get my bookings (requires any valid Firebase auth) ──────────────────
+router.get("/bookings/mine", requireAuth as any, async (req: any, res) => {
+  const email = (req.userEmail as string) ?? "";
+  try {
+    const rows = await db
+      .select()
+      .from(bookingsTable)
+      .where(eq(bookingsTable.userEmail, email))
+      .orderBy(desc(bookingsTable.createdAt));
+    res.json(rows);
+  } catch (err) {
+    req.log.error({ err }, "GET /bookings/mine");
     res.status(500).json({ error: "Internal error" });
   }
 });

@@ -284,6 +284,77 @@ export async function apiUnsubscribePush(endpoint: string): Promise<void> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+// ─── My Bookings (authenticated user) ─────────────────────────────────────────
+
+export async function apiGetMyBookings(): Promise<ApiBooking[]> {
+  const token = await auth?.currentUser?.getIdToken().catch(() => null);
+  if (!token) return [];
+  try {
+    const res = await fetch(`${BASE}/bookings/mine`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    return res.json() as Promise<ApiBooking[]>;
+  } catch {
+    return [];
+  }
+}
+
+// ─── Client Testimonials ───────────────────────────────────────────────────────
+
+export interface ApiTestimonial {
+  id: string;
+  clientName: string;
+  content: string;
+  rating: number;
+  createdAt: string;
+}
+
+export async function apiGetTestimonials(): Promise<ApiTestimonial[]> {
+  try {
+    const res = await fetch(`${BASE}/testimonials`);
+    if (!res.ok) return [];
+    return res.json() as Promise<ApiTestimonial[]>;
+  } catch {
+    return [];
+  }
+}
+
+export async function apiCreateTestimonial(data: {
+  clientName: string;
+  content: string;
+  rating: number;
+}): Promise<ApiTestimonial> {
+  const res = await fetch(`${BASE}/admin/testimonials`, {
+    method: "POST",
+    headers: await adminHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiTestimonial>;
+}
+
+export async function apiUpdateTestimonial(
+  id: string,
+  data: Partial<{ clientName: string; content: string; rating: number }>,
+): Promise<ApiTestimonial> {
+  const res = await fetch(`${BASE}/admin/testimonials/${id}`, {
+    method: "PATCH",
+    headers: await adminHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiTestimonial>;
+}
+
+export async function apiDeleteTestimonial(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/admin/testimonials/${id}`, {
+    method: "DELETE",
+    headers: await adminHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 // ─── Site Settings ─────────────────────────────────────────────────────────────
 
 export async function apiGetSettings(): Promise<Record<string, string>> {
