@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Raleway:wght@300;400;500;600&family=Tajawal:wght@300;400;500;700&display=swap');
+@import 'react-phone-number-input/style.css';
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -139,3 +140,67 @@
     background-position: 200% center;
   }
 }
+
+/* ── Phone Input — dark theme overrides ──────────────────────────────────────── */
+.bah-phone-wrapper .PhoneInput {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s;
+}
+.bah-phone-wrapper .PhoneInput:focus-within {
+  border-color: rgba(212, 175, 55, 0.5);
+}
+.bah-phone-wrapper .PhoneInputCountrySelect {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 12px 6px 12px 14px;
+  outline: none;
+  min-width: 0;
+}
+.bah-phone-wrapper .PhoneInputCountrySelect:focus {
+  outline: none;
+}
+.bah-phone-wrapper .PhoneInputCountrySelectArrow {
+  color: rgba(212, 175, 55, 0.6);
+  margin-left: 4px;
+  margin-right: 8px;
+  border-color: rgba(212, 175, 55, 0.6);
+  opacity: 1;
+  width: 0.45em;
+  height: 0.45em;
+}
+.bah-phone-wrapper .PhoneInputCountryIcon {
+  width: 24px;
+  height: 16px;
+  border: none;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+.bah-phone-wrapper .PhoneInputCountryIcon--square {
+  width: 20px;
+}
+.bah-phone-wrapper .PhoneInputCountryIconImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.bah-phone-wrapper .PhoneInputInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  padding: 12px 14px 12px 6px;
+  outline: none;
+  min-width: 0;
+}
+.bah-phone-wrapper .PhoneInputInput::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+

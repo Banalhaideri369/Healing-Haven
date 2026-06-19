@@ -6,6 +6,8 @@ import {
   User, Mail, Phone, MessageSquare, Loader2, CheckCircle2, Clock,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
+import PhoneInput from "react-phone-number-input";
+import type { Value as PhoneValue } from "react-phone-number-input";
 import { apiGetOnlineCourse, apiCreateBooking, type ApiOnlineCourse } from "@/lib/api";
 import { type DayKey } from "@/lib/courses";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -257,7 +259,7 @@ export default function BookingPage() {
 
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
-  const [userWhatsapp, setUserWhatsapp] = useState("");
+  const [userWhatsapp, setUserWhatsapp] = useState<PhoneValue>("");
   const [issueDescription, setIssueDescription] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -400,18 +402,34 @@ export default function BookingPage() {
                   {[
                     { icon: <User size={13} />, label: isRTL ? "الاسم الكامل" : "Full Name", value: userName, set: setUserName, type: "text" },
                     { icon: <Mail size={13} />, label: isRTL ? "البريد الإلكتروني" : "Email", value: userEmail, set: setUserEmail, type: "email" },
-                    { icon: <Phone size={13} />, label: isRTL ? "رقم واتساب" : "WhatsApp", value: userWhatsapp, set: setUserWhatsapp, type: "tel" },
                   ].map(({ icon, label, value, set, type }) => (
                     <div key={label}>
                       <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">{icon}{label}</label>
                       <input type={type} value={value} onChange={(e) => set(e.target.value)} className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50" />
                     </div>
                   ))}
+
+                  {/* WhatsApp — smart international phone input */}
+                  <div>
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5">
+                      <Phone size={13} />
+                      {isRTL ? "رقم واتساب" : "WhatsApp Number"}
+                    </label>
+                    <div className="bah-phone-wrapper">
+                      <PhoneInput
+                        international
+                        defaultCountry="JO"
+                        value={userWhatsapp}
+                        onChange={(val) => setUserWhatsapp(val ?? "")}
+                        placeholder={isRTL ? "+962 7X XXX XXXX" : "+1 (555) 000-0000"}
+                      />
+                    </div>
+                  </div>
                   <div>
                     <label className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1.5"><MessageSquare size={13} />{isRTL ? "وصف حالتك" : "Describe your situation"}</label>
                     <textarea value={issueDescription} onChange={(e) => setIssueDescription(e.target.value)} rows={3} placeholder={isRTL ? "أخبرينا عن ما تمر به..." : "Tell us what you're going through..."} className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/30 resize-none" />
                   </div>
-                  <button onClick={() => { if (userName && userEmail && userWhatsapp) setStep(2); }} disabled={!userName || !userEmail || !userWhatsapp} className="w-full py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 transition-colors mt-2">
+                  <button onClick={() => { if (userName && userEmail && userWhatsapp && String(userWhatsapp).length > 5) setStep(2); }} disabled={!userName || !userEmail || !userWhatsapp || String(userWhatsapp).length <= 5} className="w-full py-3 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-widest hover:bg-primary/90 disabled:opacity-40 transition-colors mt-2">
                     {isRTL ? "التالي ←" : "Next →"}
                   </button>
                 </motion.div>

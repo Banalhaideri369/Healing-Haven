@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   LogOut, ArrowLeft, ArrowRight, Users,
-  BookOpen, Video, ListOrdered, ChevronRight, Settings,
+  BookOpen, Video, ListOrdered, ChevronRight, Settings, Bell, BellOff, BellRing,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,9 +14,11 @@ import { RecordedCoursesTab } from "@/components/admin/RecordedCoursesTab";
 import { OnlineCoursesTab } from "@/components/admin/OnlineCoursesTab";
 import { SubscriptionsTab } from "@/components/admin/SubscriptionsTab";
 import { WebsiteSettingsTab } from "@/components/admin/WebsiteSettingsTab";
+import { apiGetVapidPublicKey, apiSubscribePush, apiUnsubscribePush } from "@/lib/api";
 
 type MainTab = "courses" | "bookings" | "users" | "settings";
 type CoursesSubTab = "recorded" | "online";
+type PushStatus = "idle" | "subscribed" | "denied" | "unsupported" | "loading";
 
 interface UserRow {
   uid: string;
@@ -25,6 +27,17 @@ interface UserRow {
   createdAt?: string;
   bio?: string;
   phone?: string;
+}
+
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
 export default function AdminDashboard() {
@@ -39,6 +52,133 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
+  // ── Push notification state ──────────────────────────────────────────────────
+  const [pushStatus, setPushStatus] = useState<PushStatus>("idle");
+
+  const checkPushStatus = useCallback(async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushStatus("unsupported");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      setPushStatus("denied");
+      return;
+    }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      setPushStatus(sub ? "subscribed" : "idle");
+    } catch {
+      setPushStatus("idle");
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkPushStatus();
+  }, [checkPushStatus]);
+
+  const handleEnablePush = async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    setPushStatus("loading");
+    try {
+      const publicKey = await apiGetVapidPublicKey();
+      if (!publicKey) { setPushStatus("idle"); return; }
+
+      const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") { setPushStatus("denied"); return; }
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as ArrayBuffer,
+      });
+
+      const subJson = sub.toJSON() as {
+        endpoint: string;
+        keys?: { p256dh?: string; auth?: string };
+      };
+
+      if (subJson.endpoint && subJson.keys?.p256dh && subJson.keys?.auth) {
+        await apiSubscribePush({
+          endpoint: subJson.endpoint,
+          keys: { p256dh: subJson.keys.p256dh, auth: subJson.keys.auth },
+        });
+      }
+
+      setPushStatus("subscribed");
+
+      // Test notification
+      setTimeout(() => {
+        void reg.showNotification("🔔 Notifications Enabled!", {
+          body: isRTL ? "ستتلقين إشعاراً فورياً مع كل حجز جديد." : "You'll receive instant alerts for every new booking.",
+          icon: "/favicon.svg",
+          tag: "enable-test",
+        });
+      }, 500);
+    } catch {
+      setPushStatus("idle");
+    }
+  };
+
+  const handleDisablePush = async () => {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await apiUnsubscribePush(sub.endpoint);
+        await sub.unsubscribe();
+      }
+      setPushStatus("idle");
+    } catch {
+      setPushStatus("idle");
+    }
+  };
+
+  // ── Push notification banner ─────────────────────────────────────────────────
+  const PushBanner = () => {
+    if (pushStatus === "unsupported" || pushStatus === "subscribed") return null;
+
+    if (pushStatus === "denied") {
+      return (
+        <div className="bg-amber-950/30 border-b border-amber-500/20 px-6 py-2">
+          <p className="text-xs text-amber-400/70 text-center">
+            {isRTL
+              ? "⚠️ الإشعارات محظورة في المتصفح. يرجى السماح بها من إعدادات المتصفح."
+              : "⚠️ Notifications are blocked. Please allow them in your browser settings."}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-[#0f0a12] border-b border-primary/15 px-6 py-2.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          <Bell size={14} className="text-primary/70 shrink-0" />
+          <p className="text-xs text-muted-foreground/70">
+            {isRTL
+              ? "فعّلي الإشعارات الفورية لتلقّي تنبيه مع كل حجز جديد على هاتفك أو حاسوبك."
+              : "Enable push notifications to receive instant alerts for every new booking."}
+          </p>
+        </div>
+        <button
+          onClick={() => void handleEnablePush()}
+          disabled={pushStatus === "loading"}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-primary/15 border border-primary/40 text-primary text-[11px] font-semibold uppercase tracking-widest hover:bg-primary/25 disabled:opacity-50 transition-colors"
+        >
+          {pushStatus === "loading" ? (
+            <span className="w-3 h-3 border border-primary/40 border-t-primary rounded-full animate-spin" />
+          ) : (
+            <BellRing size={12} />
+          )}
+          {isRTL ? "تفعيل" : "Enable"}
+        </button>
+      </div>
+    );
+  };
+
+  // ── Users ────────────────────────────────────────────────────────────────────
   const fetchUsers = () => {
     if (!db || loadingUsers) return;
     setLoadingUsers(true);
@@ -89,6 +229,17 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
+            {/* Push toggle for subscribed state */}
+            {pushStatus === "subscribed" && (
+              <button
+                onClick={() => void handleDisablePush()}
+                title={isRTL ? "تعطيل الإشعارات" : "Disable notifications"}
+                className="flex items-center gap-1.5 text-[11px] text-primary/60 hover:text-red-400 uppercase tracking-widest transition-colors"
+              >
+                <BellOff size={13} />
+                <span className="hidden sm:inline">{isRTL ? "إشعارات مفعّلة" : "Notifs On"}</span>
+              </button>
+            )}
             <span className="text-xs text-muted-foreground/50 hidden sm:block">{user?.email}</span>
             <button
               onClick={handleLogout}
@@ -100,6 +251,9 @@ export default function AdminDashboard() {
           </div>
         </div>
       </header>
+
+      {/* ── Push notification banner ── */}
+      <PushBanner />
 
       {/* ── Main tabs ── */}
       <div className="border-b border-white/6 bg-black/20">

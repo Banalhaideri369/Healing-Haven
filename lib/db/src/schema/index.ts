@@ -77,6 +77,18 @@ export const heroBannersTable = pgTable("hero_banners", {
 
 export type HeroBannerRow = typeof heroBannersTable.$inferSelect;
 
+// ─── Push Subscriptions ───────────────────────────────────────────────────────
+
+export const pushSubscriptionsTable = pgTable("push_subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type PushSubscriptionRow = typeof pushSubscriptionsTable.$inferSelect;
+
 // ─── Site Settings ────────────────────────────────────────────────────────────
 
 export const siteSettingsTable = pgTable("site_settings", {

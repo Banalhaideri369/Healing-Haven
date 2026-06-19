@@ -39,3 +39,6 @@ externalPort = 80
 
 [userenv.shared]
 TELEGRAM_WORKSHOP_URL = "https://t.me/+Luy1BC1WsokxNGVl"
+VAPID_PUBLIC_KEY = "BPdAI9LzLX5Q0UxcigZ-2ORR15435o5fxFnZ4NSnGwIuBGJYbdj_wUWtQ92uKZptm7iSFpvvmwrWvWEoH2qxHHM"
+VAPID_PRIVATE_KEY = "-kd5LsjPY1h8jxLFqMi2FcVBkQ7_lQBbBgLCMZdPHV0"
+VAPID_EMAIL = "mailto:admin@ban-al-haidari.com"

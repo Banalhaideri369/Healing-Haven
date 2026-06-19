@@ -250,6 +250,40 @@ export async function apiDeleteBanner(id: string): Promise<void> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 }
 
+// ─── Push Notifications ────────────────────────────────────────────────────────
+
+export async function apiGetVapidPublicKey(): Promise<string | null> {
+  try {
+    const res = await fetch(`${BASE}/push/vapid-public-key`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { publicKey: string };
+    return data.publicKey;
+  } catch {
+    return null;
+  }
+}
+
+export async function apiSubscribePush(subscription: {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}): Promise<void> {
+  const res = await fetch(`${BASE}/admin/push/subscribe`, {
+    method: "POST",
+    headers: await adminHeaders(),
+    body: JSON.stringify(subscription),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
+export async function apiUnsubscribePush(endpoint: string): Promise<void> {
+  const res = await fetch(`${BASE}/admin/push/unsubscribe`, {
+    method: "POST",
+    headers: await adminHeaders(),
+    body: JSON.stringify({ endpoint }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 // ─── Site Settings ─────────────────────────────────────────────────────────────
 
 export async function apiGetSettings(): Promise<Record<string, string>> {

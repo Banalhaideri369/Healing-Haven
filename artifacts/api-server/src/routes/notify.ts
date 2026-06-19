@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
+import { sendPushToAll } from "./push";
 
 const router: IRouter = Router();
 
@@ -14,9 +15,9 @@ interface BookingNotifyBody {
   selectedTime?: string;
 }
 
-const ADMIN_EMAIL = "ban.alhaideri369@gmail.com";
+const ADMIN_EMAIL = process.env["ADMIN_EMAIL"] ?? "ban.alhaideri369@gmail.com";
 
-/** POST /api/notify/booking — send email notification for a new booking */
+/** POST /api/notify/booking — email + push notification for a new booking */
 router.post("/notify/booking", async (req, res) => {
   const body = req.body as BookingNotifyBody;
 
@@ -31,13 +32,12 @@ router.post("/notify/booking", async (req, res) => {
     selectedTime = "—",
   } = body;
 
-  // Log booking details server-side regardless
   logger.info(
     { userName, userEmail, userWhatsapp, courseName, courseType, selectedDate, selectedTime },
     "New booking received",
   );
 
-  // ── Optional: send email via nodemailer ──────────────────────────────────────
+  // ── Email via Nodemailer (Gmail) ──────────────────────────────────────────────
   const gmailUser = process.env["GMAIL_SENDER_EMAIL"];
   const gmailPass = process.env["GMAIL_APP_PASSWORD"];
 
@@ -51,8 +51,8 @@ router.post("/notify/booking", async (req, res) => {
 
       const html = `
         <div style="font-family:sans-serif;max-width:560px;margin:auto;padding:24px;background:#0f0a12;color:#e5e0d8;border:1px solid rgba(212,175,55,0.3)">
-          <h2 style="color:#d4af37;margin-bottom:4px;">New Booking — Ban Al-Haidari</h2>
-          <p style="color:#888;font-size:13px;margin-top:0">${new Date().toLocaleString()}</p>
+          <h2 style="color:#d4af37;margin-bottom:4px;">🌟 New Booking — Ban Al-Haidari</h2>
+          <p style="color:#888;font-size:13px;margin-top:0">${new Date().toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" })}</p>
           <hr style="border-color:rgba(212,175,55,0.15);margin:16px 0"/>
           <table style="width:100%;font-size:14px;border-collapse:collapse;">
             ${[
@@ -67,12 +67,14 @@ router.post("/notify/booking", async (req, res) => {
               .map(
                 ([k, v]) =>
                   `<tr>
-                    <td style="padding:8px 0;color:#d4af37;width:120px;vertical-align:top;">${k}</td>
+                    <td style="padding:8px 0;color:#d4af37;width:120px;vertical-align:top;font-weight:600;">${k}</td>
                     <td style="padding:8px 0;color:#e5e0d8;">${v}</td>
                   </tr>`,
               )
               .join("")}
           </table>
+          <hr style="border-color:rgba(212,175,55,0.15);margin:16px 0"/>
+          <p style="font-size:12px;color:#555;margin:0;">Ban Al-Haidari Platform — Automated Alert</p>
         </div>
       `;
 
@@ -83,15 +85,27 @@ router.post("/notify/booking", async (req, res) => {
         html,
       });
 
-      logger.info({ to: ADMIN_EMAIL }, "Booking notification email sent");
+      logger.info({ to: ADMIN_EMAIL }, "Booking email sent");
     } catch (err) {
       logger.warn({ err }, "Failed to send booking email — check GMAIL_SENDER_EMAIL / GMAIL_APP_PASSWORD");
     }
   } else {
-    logger.info("Email not configured (GMAIL_SENDER_EMAIL / GMAIL_APP_PASSWORD not set) — skipping email");
+    logger.info("Email not configured — skipping (set GMAIL_SENDER_EMAIL + GMAIL_APP_PASSWORD to enable)");
   }
 
-  // Always return success to not block the user's booking flow
+  // ── Web Push Notification ─────────────────────────────────────────────────────
+  try {
+    await sendPushToAll({
+      title: "📅 New Booking!",
+      body: `${userName} — ${courseName}`,
+      tag: "new-booking",
+      url: "/admin",
+    });
+    logger.info("Push notifications sent");
+  } catch (err) {
+    logger.warn({ err }, "Failed to send push notifications");
+  }
+
   res.json({ success: true });
 });
 
