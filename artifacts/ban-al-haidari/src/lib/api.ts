@@ -197,6 +197,7 @@ export interface ApiBanner {
   image: string;
   title: string;
   status: "available" | "coming_soon";
+  linkedCourseId: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -216,6 +217,7 @@ export async function apiCreateBanner(data: {
   image: string;
   title: string;
   status: "available" | "coming_soon";
+  linkedCourseId?: string | null;
   sortOrder?: number;
 }): Promise<ApiBanner> {
   const res = await fetch(`${BASE}/admin/banners`, {
@@ -229,7 +231,7 @@ export async function apiCreateBanner(data: {
 
 export async function apiUpdateBanner(
   id: string,
-  data: Partial<{ image: string; title: string; status: string; sortOrder: number }>,
+  data: Partial<{ image: string; title: string; status: string; linkedCourseId: string | null; sortOrder: number }>,
 ): Promise<ApiBanner> {
   const res = await fetch(`${BASE}/admin/banners/${id}`, {
     method: "PATCH",

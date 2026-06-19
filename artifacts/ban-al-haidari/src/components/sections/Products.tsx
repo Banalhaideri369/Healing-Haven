@@ -84,10 +84,13 @@ export function Products() {
             <div className={recordedCourses.length === 1 ? "" : "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"}>
               {recordedCourses.map((course, i) =>
                 recordedCourses.length === 1 ? (
-                  <FeaturedCourseCard key={course.id} course={course} isRTL={isRTL} t={t} />
+                  <div key={course.id} data-course-id={course.id}>
+                    <FeaturedCourseCard course={course} isRTL={isRTL} t={t} />
+                  </div>
                 ) : (
                   <motion.div
                     key={course.id}
+                    data-course-id={course.id}
                     variants={fadeUp}
                     initial="hidden"
                     whileInView="show"
@@ -118,6 +121,7 @@ export function Products() {
               {onlineCourses.map((course, i) => (
                 <motion.div
                   key={course.id}
+                  data-course-id={course.id}
                   variants={fadeUp}
                   initial="hidden"
                   whileInView="show"

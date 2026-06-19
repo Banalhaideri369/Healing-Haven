@@ -21,7 +21,7 @@ router.get("/banners", async (req, res) => {
 
 // Admin: create banner
 router.post("/admin/banners", requireAdmin, async (req, res) => {
-  const b = req.body as { image?: string; title?: string; status?: string; sortOrder?: number };
+  const b = req.body as { image?: string; title?: string; status?: string; linkedCourseId?: string | null; sortOrder?: number };
   if (!b.title?.trim()) {
     res.status(400).json({ error: "title required" });
     return;
@@ -33,6 +33,7 @@ router.post("/admin/banners", requireAdmin, async (req, res) => {
         image: b.image ?? "",
         title: b.title.trim(),
         status: b.status === "available" ? "available" : "coming_soon",
+        linkedCourseId: b.linkedCourseId ?? null,
         sortOrder: b.sortOrder ?? 0,
       })
       .returning();
@@ -45,11 +46,12 @@ router.post("/admin/banners", requireAdmin, async (req, res) => {
 
 // Admin: update banner
 router.patch("/admin/banners/:id", requireAdmin, async (req, res) => {
-  const b = req.body as { image?: string; title?: string; status?: string; sortOrder?: number };
+  const b = req.body as { image?: string; title?: string; status?: string; linkedCourseId?: string | null; sortOrder?: number };
   const update: Record<string, unknown> = { updatedAt: new Date() };
   if (b.image !== undefined) update.image = b.image;
   if (b.title !== undefined) update.title = b.title;
   if (b.status !== undefined) update.status = b.status;
+  if ("linkedCourseId" in b) update.linkedCourseId = b.linkedCourseId ?? null;
   if (b.sortOrder !== undefined) update.sortOrder = b.sortOrder;
 
   try {

@@ -8,6 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import {
   apiGetSettings, apiSetSetting,
   apiGetBanners, apiCreateBanner, apiUpdateBanner, apiDeleteBanner,
+  apiGetRecordedCourses, apiGetOnlineCourses,
   type ApiBanner,
 } from "@/lib/api";
 
@@ -37,7 +38,12 @@ function compressImage(file: File, maxPx = 1200): Promise<string> {
 }
 
 // ── Empty banner form ─────────────────────────────────────────────────────────
-const EMPTY_FORM = { image: "", title: "", status: "coming_soon" as "available" | "coming_soon" };
+const EMPTY_FORM = {
+  image: "",
+  title: "",
+  status: "coming_soon" as "available" | "coming_soon",
+  linkedCourseId: "",
+};
 
 export function WebsiteSettingsTab() {
   const { isRTL } = useLanguage();
@@ -50,6 +56,9 @@ export function WebsiteSettingsTab() {
   const [currentImage, setCurrentImage] = useState("/ban-photo.png");
   const [newImage, setNewImage] = useState<string | null>(null);
   const profileInputRef = useRef<HTMLInputElement>(null);
+
+  // ── Courses for the linked-course selector ────────────────────────────────
+  const [courses, setCourses] = useState<{ id: string; title: string; type: "recorded" | "online" }[]>([]);
 
   // ── Banner state ──────────────────────────────────────────────────────────
   const [bannerEnabled, setBannerEnabled] = useState(false);
@@ -76,6 +85,15 @@ export function WebsiteSettingsTab() {
     apiGetBanners()
       .then(setBanners)
       .finally(() => setBannersLoading(false));
+
+    Promise.all([apiGetRecordedCourses(), apiGetOnlineCourses()])
+      .then(([rec, onl]) => {
+        setCourses([
+          ...rec.map((c) => ({ id: c.id, title: c.title, type: "recorded" as const })),
+          ...onl.map((c) => ({ id: c.id, title: c.title, type: "online" as const })),
+        ]);
+      })
+      .catch(() => {});
   }, []);
 
   // ── Profile image handlers ────────────────────────────────────────────────
@@ -134,14 +152,20 @@ export function WebsiteSettingsTab() {
   const handleBannerSave = async () => {
     if (!form.title.trim()) { toast.error(isRTL ? "العنوان مطلوب" : "Title is required"); return; }
     setFormSaving(true);
+    const payload = {
+      image: form.image,
+      title: form.title,
+      status: form.status,
+      linkedCourseId: form.linkedCourseId || null,
+    };
     try {
       if (editingId) {
-        const updated = await apiUpdateBanner(editingId, form);
+        const updated = await apiUpdateBanner(editingId, payload);
         setBanners((prev) => prev.map((b) => (b.id === editingId ? updated : b)));
         toast.success(isRTL ? "تم تحديث البانر ✓" : "Banner updated ✓");
         setEditingId(null);
       } else {
-        const created = await apiCreateBanner({ ...form, sortOrder: banners.length });
+        const created = await apiCreateBanner({ ...payload, sortOrder: banners.length });
         setBanners((prev) => [...prev, created]);
         toast.success(isRTL ? "تم إضافة البانر ✓" : "Banner added ✓");
       }
@@ -152,7 +176,12 @@ export function WebsiteSettingsTab() {
 
   const startEdit = (b: ApiBanner) => {
     setEditingId(b.id);
-    setForm({ image: b.image, title: b.title, status: b.status as "available" | "coming_soon" });
+    setForm({
+      image: b.image,
+      title: b.title,
+      status: b.status as "available" | "coming_soon",
+      linkedCourseId: b.linkedCourseId ?? "",
+    });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -295,6 +324,41 @@ export function WebsiteSettingsTab() {
                 <p className="text-[10px] text-primary/60 mt-1">{isRTL ? "سيتم توجيه الزائر تلقائياً لقسم الكورسات عند الضغط" : "Clicking will automatically scroll to the courses section"}</p>
               )}
             </div>
+
+            {/* Linked course selector — only shown when status is available */}
+            {form.status === "available" && (
+              <div>
+                <label className="block text-[11px] uppercase tracking-widest text-muted-foreground mb-2">
+                  {isRTL ? "ربط بكورس محدد (اختياري)" : "Link to Specific Course (optional)"}
+                </label>
+                <select
+                  value={form.linkedCourseId}
+                  onChange={(e) => setForm((f) => ({ ...f, linkedCourseId: e.target.value }))}
+                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-2.5 focus:outline-none focus:border-primary/50"
+                >
+                  <option value="">{isRTL ? "— لا ربط (انتقال عام لقسم الكورسات) —" : "— None (scroll to courses section) —"}</option>
+                  {courses.length > 0 && (
+                    <>
+                      <optgroup label={isRTL ? "الكورسات المسجلة" : "Recorded Courses"}>
+                        {courses.filter((c) => c.type === "recorded").map((c) => (
+                          <option key={c.id} value={c.id}>{c.title}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label={isRTL ? "الجلسات الفردية" : "One-on-One Sessions"}>
+                        {courses.filter((c) => c.type === "online").map((c) => (
+                          <option key={c.id} value={c.id}>{c.title}</option>
+                        ))}
+                      </optgroup>
+                    </>
+                  )}
+                </select>
+                {form.linkedCourseId && (
+                  <p className="text-[10px] text-emerald-400/70 mt-1">
+                    {isRTL ? "✓ سيتم التمرير مباشرة إلى بطاقة هذا الكورس مع إبراز ذهبي" : "✓ Will scroll directly to this course card with a gold highlight"}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Form actions */}
             <div className="flex items-center gap-3 pt-1">

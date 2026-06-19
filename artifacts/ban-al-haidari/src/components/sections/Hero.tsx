@@ -1,14 +1,16 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { HeroBanner } from "./HeroBanner";
 
 export function Hero() {
   const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 1000], [0, 400]);
-  const opacity = useTransform(scrollY, [0, 500], [1, 0]);
+  const y       = useTransform(scrollY, [0, 1000], [0, 400]);
+  const opacity = useTransform(scrollY, [0, 500],  [1, 0]);
   const { t } = useLanguage();
 
   return (
-    <section className="relative h-screen min-h-[600px] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-screen flex flex-col overflow-hidden">
+      {/* ── Parallax background ── */}
       <motion.div className="absolute inset-0 w-full h-full" style={{ y, opacity }}>
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -17,7 +19,13 @@ export function Hero() {
         <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/60 to-background" />
       </motion.div>
 
-      <div className="relative z-10 text-center px-6 flex flex-col items-center max-w-4xl mx-auto mt-20">
+      {/* ── Banner slot — sits just below the fixed header ── */}
+      <div className="relative z-10 w-full pt-20 sm:pt-24">
+        <HeroBanner />
+      </div>
+
+      {/* ── Main hero content — centered in the remaining viewport space ── */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 pb-20 max-w-4xl mx-auto w-full">
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -61,11 +69,12 @@ export function Hero() {
         </motion.div>
       </div>
 
+      {/* ── Scroll indicator ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 1 }}
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-10"
       >
         <span className="text-xs text-muted-foreground tracking-widest uppercase">{t.hero.scroll}</span>
         <div className="w-[1px] h-12 bg-gradient-to-b from-primary/50 to-transparent" />

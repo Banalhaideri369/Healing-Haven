@@ -69,6 +69,7 @@ export const heroBannersTable = pgTable("hero_banners", {
   image: text("image").notNull().default(""),
   title: text("title").notNull().default(""),
   status: text("status").notNull().default("coming_soon"), // "available" | "coming_soon"
+  linkedCourseId: text("linked_course_id"),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
