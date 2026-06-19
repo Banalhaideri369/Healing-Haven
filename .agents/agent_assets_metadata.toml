@@ -12,3 +12,21 @@ id = "iIokaYn6iTNKaHtYLc2T5"
 uri = "file://artifacts/ban-al-haidari/public/about-bg.png"
 type = "image"
 title = "About section sanctuary"
+
+[[generated]]
+id = "VNKZRDdZS9gfcEs0cAUFB"
+uri = "file://artifacts/ban-al-haidari/public/images/nebula-bg.png"
+type = "image"
+title = "dark purple gold nebula"
+
+[[generated]]
+id = "9Qd9RaJHmHPEh4WZL-B9c"
+uri = "file://artifacts/ban-al-haidari/public/images/sacred-geometry.png"
+type = "image"
+title = "sacred geometry mandala"
+
+[[generated]]
+id = "Ef_uyRTbP5Y9WFFPQ1zRo"
+uri = "file://artifacts/ban-al-haidari/public/images/healing-hands.png"
+type = "image"
+title = "energy healing hands"

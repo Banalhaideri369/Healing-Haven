@@ -12,6 +12,7 @@ import Profile from "@/pages/Profile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Success from "@/pages/Success";
 import BookingPage from "@/pages/BookingPage";
+import VideoTemplate from "@/components/video/VideoTemplate";
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/video" component={VideoTemplate} />
       <Route path="/profile">
         {() => <ProtectedRoute component={Profile} />}
       </Route>
