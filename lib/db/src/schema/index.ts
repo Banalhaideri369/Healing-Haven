@@ -96,6 +96,7 @@ export const clientTestimonialsTable = pgTable("client_testimonials", {
   clientName: text("client_name").notNull().default(""),
   content: text("content").notNull(),
   rating: integer("rating").notNull().default(5),
+  enabled: boolean("enabled").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

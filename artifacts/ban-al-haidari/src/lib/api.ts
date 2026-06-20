@@ -358,9 +358,11 @@ export interface ApiTestimonial {
   clientName: string;
   content: string;
   rating: number;
+  enabled: boolean;
   createdAt: string;
 }
 
+/** Public: only enabled testimonials */
 export async function apiGetTestimonials(): Promise<ApiTestimonial[]> {
   try {
     const res = await fetch(`${BASE}/testimonials`);
@@ -369,6 +371,15 @@ export async function apiGetTestimonials(): Promise<ApiTestimonial[]> {
   } catch {
     return [];
   }
+}
+
+/** Admin: all testimonials including disabled */
+export async function apiGetAdminTestimonials(): Promise<ApiTestimonial[]> {
+  const res = await fetch(`${BASE}/admin/testimonials`, {
+    headers: await adminHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiTestimonial[]>;
 }
 
 export async function apiCreateTestimonial(data: {
@@ -387,7 +398,7 @@ export async function apiCreateTestimonial(data: {
 
 export async function apiUpdateTestimonial(
   id: string,
-  data: Partial<{ clientName: string; content: string; rating: number }>,
+  data: Partial<{ clientName: string; content: string; rating: number; enabled: boolean }>,
 ): Promise<ApiTestimonial> {
   const res = await fetch(`${BASE}/admin/testimonials/${id}`, {
     method: "PATCH",

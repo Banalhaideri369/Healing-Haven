@@ -5,8 +5,23 @@ import { requireAdmin } from "../lib/adminAuth";
 
 const router: IRouter = Router();
 
-/** GET /api/testimonials — public, fetch all */
+/** GET /api/testimonials — public, only enabled */
 router.get("/testimonials", async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(clientTestimonialsTable)
+      .where(eq(clientTestimonialsTable.enabled, true))
+      .orderBy(desc(clientTestimonialsTable.createdAt));
+    res.json(rows);
+  } catch (err) {
+    req.log.error({ err }, "GET /testimonials");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
+/** GET /api/admin/testimonials — admin, all including disabled */
+router.get("/admin/testimonials", requireAdmin, async (req, res) => {
   try {
     const rows = await db
       .select()
@@ -14,7 +29,7 @@ router.get("/testimonials", async (req, res) => {
       .orderBy(desc(clientTestimonialsTable.createdAt));
     res.json(rows);
   } catch (err) {
-    req.log.error({ err }, "GET /testimonials");
+    req.log.error({ err }, "GET /admin/testimonials");
     res.status(500).json({ error: "Internal error" });
   }
 });
@@ -37,6 +52,7 @@ router.post("/admin/testimonials", requireAdmin, async (req, res) => {
         clientName: clientName?.trim() ?? "",
         content: content.trim(),
         rating: typeof rating === "number" ? Math.min(5, Math.max(1, rating)) : 5,
+        enabled: true,
       })
       .returning();
     res.status(201).json(rows[0]);
@@ -46,13 +62,14 @@ router.post("/admin/testimonials", requireAdmin, async (req, res) => {
   }
 });
 
-/** PATCH /api/admin/testimonials/:id — update */
+/** PATCH /api/admin/testimonials/:id — update content/name/rating/enabled */
 router.patch("/admin/testimonials/:id", requireAdmin, async (req, res) => {
   const id = String(req.params.id);
-  const { clientName, content, rating } = req.body as {
+  const { clientName, content, rating, enabled } = req.body as {
     clientName?: string;
     content?: string;
     rating?: number;
+    enabled?: boolean;
   };
   try {
     const rows = await db
@@ -61,6 +78,7 @@ router.patch("/admin/testimonials/:id", requireAdmin, async (req, res) => {
         ...(clientName !== undefined ? { clientName: clientName.trim() } : {}),
         ...(content !== undefined ? { content: content.trim() } : {}),
         ...(rating !== undefined ? { rating: Math.min(5, Math.max(1, rating)) } : {}),
+        ...(enabled !== undefined ? { enabled } : {}),
       })
       .where(eq(clientTestimonialsTable.id, id))
       .returning();

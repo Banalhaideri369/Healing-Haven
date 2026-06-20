@@ -10,7 +10,7 @@ import {
   apiGetSettings, apiSetSetting,
   apiGetBanners, apiCreateBanner, apiUpdateBanner, apiDeleteBanner,
   apiGetRecordedCourses, apiGetOnlineCourses,
-  apiGetTestimonials, apiCreateTestimonial, apiUpdateTestimonial, apiDeleteTestimonial,
+  apiGetAdminTestimonials, apiCreateTestimonial, apiUpdateTestimonial, apiDeleteTestimonial,
   type ApiBanner, type ApiTestimonial,
 } from "@/lib/api";
 
@@ -72,6 +72,7 @@ export function WebsiteSettingsTab() {
   const [tSaving, setTSaving] = useState(false);
   const [tDeletingId, setTDeletingId] = useState<string | null>(null);
   const [tConfirmDelete, setTConfirmDelete] = useState<string | null>(null);
+  const [tTogglingId, setTTogglingId] = useState<string | null>(null);
 
   // ── Banner state ──────────────────────────────────────────────────────────
   const [bannerEnabled, setBannerEnabled] = useState(false);
@@ -108,8 +109,9 @@ export function WebsiteSettingsTab() {
       })
       .catch(() => {});
 
-    apiGetTestimonials()
+    apiGetAdminTestimonials()
       .then(setTestimonials)
+      .catch(() => {})
       .finally(() => setTestimonialsLoading(false));
   }, []);
 
@@ -231,6 +233,20 @@ export function WebsiteSettingsTab() {
   };
 
   const cancelEditTestimonial = () => { setTEditingId(null); setTForm(EMPTY_TESTIMONIAL); };
+
+  const handleToggleTestimonial = async (t: ApiTestimonial) => {
+    setTTogglingId(t.id);
+    try {
+      const updated = await apiUpdateTestimonial(t.id, { enabled: !t.enabled });
+      setTestimonials((prev) => prev.map((x) => (x.id === t.id ? updated : x)));
+      toast.success(
+        updated.enabled
+          ? (isRTL ? "تم تفعيل الرأي ✓" : "Review enabled ✓")
+          : (isRTL ? "تم تعطيل الرأي" : "Review disabled")
+      );
+    } catch { toast.error(isRTL ? "فشل التحديث" : "Update failed"); }
+    finally { setTTogglingId(null); }
+  };
 
   const handleDeleteTestimonial = async (id: string) => {
     setTDeletingId(id);
@@ -575,31 +591,66 @@ export function WebsiteSettingsTab() {
               {testimonials.map((t) => (
                 <div
                   key={t.id}
-                  className={`p-3 border transition-colors ${tEditingId === t.id ? "border-primary/40 bg-primary/5" : "border-white/8 bg-black/10"}`}
+                  className={`p-3 border transition-colors ${
+                    tEditingId === t.id
+                      ? "border-primary/40 bg-primary/5"
+                      : t.enabled
+                      ? "border-white/8 bg-black/10"
+                      : "border-white/4 bg-black/5 opacity-50"
+                  }`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-xs font-semibold text-foreground">{t.clientName || (isRTL ? "مجهول" : "Anonymous")}</p>
                         <div className="flex gap-0.5">
                           {Array.from({ length: 5 }).map((_, i) => (
                             <Star key={i} size={9} className={i < t.rating ? "fill-primary text-primary" : "fill-white/10 text-white/10"} />
                           ))}
                         </div>
+                        {!t.enabled && (
+                          <span className="text-[9px] uppercase tracking-widest border border-white/15 text-muted-foreground/50 px-1.5 py-0.5">
+                            {isRTL ? "معطّل" : "Hidden"}
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-muted-foreground line-clamp-2">{t.content}</p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {/* Toggle enable/disable */}
+                      <button
+                        onClick={() => void handleToggleTestimonial(t)}
+                        disabled={tTogglingId === t.id}
+                        title={t.enabled ? (isRTL ? "تعطيل (إخفاء)" : "Hide") : (isRTL ? "تفعيل (إظهار)" : "Show")}
+                        className={`w-7 h-7 flex items-center justify-center border transition-colors ${
+                          t.enabled
+                            ? "border-emerald-400/30 text-emerald-400/70 hover:border-red-400/30 hover:text-red-400/70"
+                            : "border-white/15 text-muted-foreground/40 hover:border-emerald-400/30 hover:text-emerald-400/70"
+                        }`}
+                      >
+                        {tTogglingId === t.id ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : t.enabled ? (
+                          <ToggleRight size={13} />
+                        ) : (
+                          <ToggleLeft size={13} />
+                        )}
+                      </button>
+
+                      {/* Edit */}
                       <button
                         onClick={() => startEditTestimonial(t)}
                         className="w-7 h-7 flex items-center justify-center border border-white/15 text-muted-foreground hover:text-primary hover:border-primary/40 transition-colors"
                       >
                         <Pencil size={11} />
                       </button>
+
+                      {/* Delete */}
                       {tConfirmDelete === t.id ? (
                         <div className="flex items-center gap-1">
                           <button
-                            onClick={() => handleDeleteTestimonial(t.id)}
+                            onClick={() => void handleDeleteTestimonial(t.id)}
                             disabled={tDeletingId === t.id}
                             className="text-[10px] text-red-400 border border-red-400/30 px-2 py-1 hover:bg-red-400/10 transition-colors"
                           >
