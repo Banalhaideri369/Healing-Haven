@@ -322,6 +322,14 @@ export async function apiGetUsers(): Promise<ApiUserProfile[]> {
   return res.json() as Promise<ApiUserProfile[]>;
 }
 
+export async function apiDeleteUser(uid: string): Promise<void> {
+  const res = await fetch(`${BASE}/admin/users/${encodeURIComponent(uid)}`, {
+    method: "DELETE",
+    headers: await adminHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 // ─── Client Testimonials ───────────────────────────────────────────────────────
 
 export interface ApiTestimonial {

@@ -12,7 +12,8 @@ import { RecordedCoursesTab } from "@/components/admin/RecordedCoursesTab";
 import { OnlineCoursesTab } from "@/components/admin/OnlineCoursesTab";
 import { SubscriptionsTab } from "@/components/admin/SubscriptionsTab";
 import { WebsiteSettingsTab } from "@/components/admin/WebsiteSettingsTab";
-import { apiGetVapidPublicKey, apiSubscribePush, apiUnsubscribePush, apiGetUsers, type ApiUserProfile } from "@/lib/api";
+import { apiGetVapidPublicKey, apiSubscribePush, apiUnsubscribePush, apiGetUsers, apiDeleteUser, type ApiUserProfile } from "@/lib/api";
+import { Trash2 } from "lucide-react";
 
 type MainTab = "courses" | "bookings" | "users" | "settings";
 type CoursesSubTab = "recorded" | "online";
@@ -40,6 +41,8 @@ export default function AdminDashboard() {
 
   const [users, setUsers] = useState<ApiUserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [confirmDeleteUid, setConfirmDeleteUid] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // ── Push notification state ──────────────────────────────────────────────────
   const [pushStatus, setPushStatus] = useState<PushStatus>("idle");
@@ -183,6 +186,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (mainTab === "users") void fetchUsers();
   }, [mainTab]);
+
+  const handleDeleteUser = async (uid: string) => {
+    setDeleting(true);
+    try {
+      await apiDeleteUser(uid);
+      setUsers((prev) => prev.filter((u) => u.uid !== uid));
+      setConfirmDeleteUid(null);
+    } catch {
+      // keep row visible on failure
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleLogout = async () => {
     await logOut();
@@ -340,17 +356,50 @@ export default function AdminDashboard() {
                           {h}
                         </th>
                       ))}
+                      <th className="px-4 py-3 text-[11px] uppercase tracking-widest text-muted-foreground font-medium w-10" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {users.map((u) => (
-                      <tr key={u.uid} className="hover:bg-primary/3 transition-colors">
+                      <tr key={u.uid} className="hover:bg-primary/3 transition-colors group">
                         <td className="px-4 py-3 text-foreground/90 font-medium whitespace-nowrap">{u.displayName || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{u.email}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{u.phone || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">{u.bio || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
                           {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          {confirmDeleteUid === u.uid ? (
+                            <span className="inline-flex items-center gap-1.5">
+                              <button
+                                onClick={() => void handleDeleteUser(u.uid)}
+                                disabled={deleting}
+                                className="text-[10px] px-2 py-1 bg-red-500/15 border border-red-500/40 text-red-400 hover:bg-red-500/25 transition-colors font-semibold uppercase tracking-wider disabled:opacity-50"
+                              >
+                                {deleting ? (
+                                  <span className="w-3 h-3 border border-red-400/30 border-t-red-400 rounded-full animate-spin inline-block" />
+                                ) : (
+                                  isRTL ? "تأكيد" : "Confirm"
+                                )}
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteUid(null)}
+                                disabled={deleting}
+                                className="text-[10px] px-2 py-1 border border-white/10 text-muted-foreground/50 hover:text-muted-foreground transition-colors uppercase tracking-wider"
+                              >
+                                {isRTL ? "إلغاء" : "Cancel"}
+                              </button>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteUid(u.uid)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground/40 hover:text-red-400"
+                              title={isRTL ? "حذف المستخدم" : "Delete user"}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

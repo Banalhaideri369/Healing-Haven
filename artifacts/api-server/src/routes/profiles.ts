@@ -126,4 +126,16 @@ router.get("/admin/users", requireAdmin, async (req, res) => {
   }
 });
 
+// ── DELETE /admin/users/:uid — delete a user profile (admin only) ─────────────
+router.delete("/admin/users/:uid", requireAdmin, async (req, res) => {
+  const uid = String(req.params.uid);
+  try {
+    await db.delete(userProfilesTable).where(eq(userProfilesTable.uid, uid));
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "DELETE /admin/users/:uid");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 export default router;
