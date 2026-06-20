@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle, Download } from "lucide-react";
+import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle, Download, CreditCard, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { apiGetBookings, type ApiBooking } from "@/lib/api";
+import { apiGetBookings, apiUpdateBookingStatus, type ApiBooking } from "@/lib/api";
 
 // ── CSV helpers ────────────────────────────────────────────────────────────────
 function csvCell(value: string | null | undefined): string {
@@ -51,6 +52,8 @@ export function SubscriptionsTab() {
 
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [confirmStatusId, setConfirmStatusId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -68,6 +71,25 @@ export function SubscriptionsTab() {
     const timer = setInterval(() => void load(), 30_000);
     return () => clearInterval(timer);
   }, [load]);
+
+  const handleStatusToggle = async (b: ApiBooking) => {
+    const next = b.paymentStatus === "pending" ? "paid" : "pending";
+    setUpdatingId(b.id);
+    setConfirmStatusId(null);
+    try {
+      const updated = await apiUpdateBookingStatus(b.id, next);
+      setBookings((prev) => prev.map((x) => (x.id === b.id ? updated : x)));
+      toast.success(
+        next === "paid"
+          ? (isRTL ? "تم تأكيد الدفع ✓" : "Marked as paid ✓")
+          : (isRTL ? "أُعيد إلى قيد الانتظار" : "Reverted to pending")
+      );
+    } catch {
+      toast.error(isRTL ? "فشل التحديث" : "Update failed");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   const recorded = bookings.filter((b) => b.courseType === "recorded");
   const online   = bookings.filter((b) => b.courseType === "online");
@@ -187,19 +209,84 @@ export function SubscriptionsTab() {
                     </div>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span
-                      className={`inline-block text-[10px] px-2 py-0.5 border font-semibold uppercase tracking-wide ${
-                        b.paymentStatus === "paid" || b.paymentStatus === "demo_paid"
-                          ? "border-emerald-400/30 text-emerald-400 bg-emerald-400/5"
-                          : "border-amber-400/30 text-amber-400/70 bg-amber-400/5"
-                      }`}
-                    >
-                      {b.paymentStatus === "demo_paid"
-                        ? a.demoPaid
-                        : b.paymentStatus === "paid"
-                        ? a.paid
-                        : a.pending}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {/* Status badge */}
+                      <span
+                        className={`inline-block text-[10px] px-2 py-0.5 border font-semibold uppercase tracking-wide ${
+                          b.paymentStatus === "paid" || b.paymentStatus === "demo_paid"
+                            ? "border-emerald-400/30 text-emerald-400 bg-emerald-400/5"
+                            : "border-amber-400/30 text-amber-400/70 bg-amber-400/5"
+                        }`}
+                      >
+                        {b.paymentStatus === "demo_paid"
+                          ? a.demoPaid
+                          : b.paymentStatus === "paid"
+                          ? a.paid
+                          : a.pending}
+                      </span>
+
+                      {/* Spinner while saving */}
+                      {updatingId === b.id && (
+                        <Loader2 size={12} className="animate-spin text-primary/60 flex-shrink-0" />
+                      )}
+
+                      {/* Inline confirm: pending → paid */}
+                      {updatingId !== b.id && b.paymentStatus === "pending" && (
+                        confirmStatusId === b.id ? (
+                          <span className="inline-flex items-center gap-1">
+                            <button
+                              onClick={() => void handleStatusToggle(b)}
+                              className="text-[10px] px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 transition-colors font-semibold uppercase tracking-wider"
+                            >
+                              {isRTL ? "تأكيد" : "Confirm"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmStatusId(null)}
+                              className="text-[10px] px-2 py-0.5 border border-white/10 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                            >
+                              {isRTL ? "إلغاء" : "Cancel"}
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmStatusId(b.id)}
+                            title={isRTL ? "تأكيد الدفع" : "Mark as paid"}
+                            className="flex items-center gap-1 text-[10px] px-2 py-0.5 border border-emerald-400/20 text-emerald-400/50 hover:border-emerald-400/50 hover:text-emerald-400 transition-colors uppercase tracking-wider"
+                          >
+                            <CreditCard size={9} />
+                            {isRTL ? "تأكيد دفع" : "Mark paid"}
+                          </button>
+                        )
+                      )}
+
+                      {/* Inline confirm: paid → pending (revert) */}
+                      {updatingId !== b.id && (b.paymentStatus === "paid" || b.paymentStatus === "demo_paid") && (
+                        confirmStatusId === b.id ? (
+                          <span className="inline-flex items-center gap-1">
+                            <button
+                              onClick={() => void handleStatusToggle(b)}
+                              className="text-[10px] px-2 py-0.5 bg-red-500/10 border border-red-500/30 text-red-400/80 hover:bg-red-500/20 transition-colors font-semibold uppercase tracking-wider"
+                            >
+                              {isRTL ? "تأكيد" : "Confirm"}
+                            </button>
+                            <button
+                              onClick={() => setConfirmStatusId(null)}
+                              className="text-[10px] px-2 py-0.5 border border-white/10 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                            >
+                              {isRTL ? "إلغاء" : "Cancel"}
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmStatusId(b.id)}
+                            title={isRTL ? "إعادة إلى قيد الانتظار" : "Revert to pending"}
+                            className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 text-muted-foreground/25 hover:text-muted-foreground/60 transition-colors"
+                          >
+                            <RotateCcw size={9} />
+                          </button>
+                        )
+                      )}
+                    </div>
                   </td>
                 </motion.tr>
               ))}

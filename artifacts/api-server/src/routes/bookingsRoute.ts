@@ -68,4 +68,27 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
   }
 });
 
+// ── Admin: update booking payment status ──────────────────────────────────────
+router.patch("/admin/bookings/:id/status", requireAdmin, async (req, res) => {
+  const id = String(req.params.id);
+  const { paymentStatus } = req.body as { paymentStatus?: string };
+  const allowed = ["pending", "paid", "demo_paid"];
+  if (!paymentStatus || !allowed.includes(paymentStatus)) {
+    res.status(400).json({ error: "paymentStatus must be one of: pending, paid, demo_paid" });
+    return;
+  }
+  try {
+    const rows = await db
+      .update(bookingsTable)
+      .set({ paymentStatus })
+      .where(eq(bookingsTable.id, id))
+      .returning();
+    if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(rows[0]);
+  } catch (err) {
+    req.log.error({ err }, "PATCH /admin/bookings/:id/status");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 export default router;

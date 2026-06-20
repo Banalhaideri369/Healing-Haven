@@ -190,6 +190,19 @@ export async function apiCreateBooking(data: {
   return res.json() as Promise<ApiBooking>;
 }
 
+export async function apiUpdateBookingStatus(
+  id: string,
+  paymentStatus: "pending" | "paid" | "demo_paid"
+): Promise<ApiBooking> {
+  const res = await fetch(`${BASE}/admin/bookings/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...(await adminHeaders()) },
+    body: JSON.stringify({ paymentStatus }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiBooking>;
+}
+
 // ─── Hero Banners ──────────────────────────────────────────────────────────────
 
 export interface ApiBanner {
