@@ -1,7 +1,8 @@
 import { auth } from "./firebase";
 import type { Availability } from "./courses";
 
-const BASE = "/api";
+const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+const BASE = `${API_ORIGIN}/api`;
 
 async function adminHeaders(): Promise<Record<string, string>> {
   const token = await auth?.currentUser?.getIdToken().catch(() => null);

@@ -27,7 +27,8 @@ export default function Success() {
       return;
     }
 
-    fetch(`/api/checkout/verify?session_id=${encodeURIComponent(sessionId)}`)
+    const apiOrigin = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+    fetch(`${apiOrigin}/api/checkout/verify?session_id=${encodeURIComponent(sessionId)}`)
       .then((r) => r.json())
       .then((data: VerifyResponse) => {
         if (data.success && data.telegramUrl) {
