@@ -1,11 +1,52 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle } from "lucide-react";
+import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle, Download } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiGetBookings, type ApiBooking } from "@/lib/api";
 
+// ── CSV helpers ────────────────────────────────────────────────────────────────
+function csvCell(value: string | null | undefined): string {
+  const s = (value ?? "").toString();
+  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function downloadCSV(bookings: ApiBooking[], isRTL: boolean) {
+  const headers = isRTL
+    ? ["الاسم", "البريد الإلكتروني", "واتساب", "الكورس", "نوع الكورس", "التاريخ", "الوقت", "وصف المشكلة", "حالة الدفع", "تاريخ الحجز"]
+    : ["Name", "Email", "WhatsApp", "Course", "Course Type", "Date", "Time", "Issue Description", "Payment Status", "Booked At"];
+
+  const rows = bookings.map((b) => [
+    csvCell(b.userName),
+    csvCell(b.userEmail),
+    csvCell(b.userWhatsapp),
+    csvCell(b.courseTitle),
+    csvCell(b.courseType),
+    csvCell(b.selectedDate),
+    csvCell(b.selectedTime),
+    csvCell(b.issueDescription),
+    csvCell(b.paymentStatus),
+    csvCell(b.createdAt ? new Date(b.createdAt).toLocaleString() : ""),
+  ].join(","));
+
+  const bom = "\uFEFF";
+  const csv = bom + [headers.map(csvCell).join(","), ...rows].join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Component ──────────────────────────────────────────────────────────────────
 export function SubscriptionsTab() {
-  const { t } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const a = t.admin;
 
   const [bookings, setBookings] = useState<ApiBooking[]>([]);
@@ -40,6 +81,20 @@ export function SubscriptionsTab() {
 
   return (
     <div>
+      {/* Header row: title + export button */}
+      <div className="flex items-center justify-between mb-8">
+        <div />
+        {bookings.length > 0 && (
+          <button
+            onClick={() => downloadCSV(bookings, isRTL)}
+            className="flex items-center gap-2 px-4 py-2 border border-primary/30 text-primary text-xs font-semibold uppercase tracking-widest hover:bg-primary/10 transition-colors"
+          >
+            <Download size={13} />
+            {isRTL ? `تصدير CSV (${bookings.length})` : `Export CSV (${bookings.length})`}
+          </button>
+        )}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
