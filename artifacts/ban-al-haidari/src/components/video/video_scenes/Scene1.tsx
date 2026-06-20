@@ -29,18 +29,18 @@ export function Scene1() {
       />
       <div className="absolute inset-0 bg-[#0B0710]/40" />
 
-      <div className="text-center relative z-10">
+      <div className="text-center relative z-10 flex flex-col items-center">
         <motion.div 
-          className="text-gold font-display text-[12vw] leading-none mb-4 tracking-widest font-light"
-          initial={{ opacity: 0, y: 30, filter: 'blur(10px)' }}
-          animate={phase >= 1 ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 30, filter: 'blur(10px)' }}
+          className="text-gold font-display text-[180px] leading-none mb-12 tracking-widest font-light"
+          initial={{ opacity: 0, y: 50, filter: 'blur(20px)' }}
+          animate={phase >= 1 ? { opacity: 1, y: 0, filter: 'blur(0px)' } : { opacity: 0, y: 50, filter: 'blur(20px)' }}
           transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
         >
           BAH
         </motion.div>
         
         <motion.div
-          className="w-[1px] h-[10vh] bg-gold mx-auto"
+          className="w-[2px] h-[300px] bg-gold"
           initial={{ scaleY: 0 }}
           animate={phase >= 2 ? { scaleY: 1 } : { scaleY: 0 }}
           transition={{ duration: 1.5, ease: 'easeInOut' }}
