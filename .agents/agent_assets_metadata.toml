@@ -1,5 +1,4 @@
 uploads = []
-outputs = []
 
 [[generated]]
 id = "OqOZA2oKczj4Nqlkb-yaj"
@@ -30,3 +29,9 @@ id = "Ef_uyRTbP5Y9WFFPQ1zRo"
 uri = "file://artifacts/ban-al-haidari/public/images/healing-hands.png"
 type = "image"
 title = "energy healing hands"
+
+[[outputs]]
+id = "du1tCUaIPr2zvJd0nV-h6"
+uri = "file://ban-al-haidari-env-secrets.zip"
+type = "unspecified"
+title = "Ban Al-Haidari — Environment Secrets"
