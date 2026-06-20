@@ -169,9 +169,6 @@ function FeaturedCourseCard({
       {/* Cover image */}
       {course.image ? (
         <div className="relative w-full">
-          <div className="absolute top-5 start-5 z-10 px-4 py-1.5 bg-primary text-primary-foreground text-[11px] font-bold uppercase tracking-[0.18em]">
-            {t.products.workshopBadge}
-          </div>
           <img
             src={course.image}
             alt={course.title}
