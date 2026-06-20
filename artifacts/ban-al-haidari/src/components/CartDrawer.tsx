@@ -108,7 +108,8 @@ export function CartDrawer() {
                       </div>
                       <button
                         onClick={() => remove(item.id)}
-                        className="flex-shrink-0 self-start mt-0.5 w-6 h-6 flex items-center justify-center text-muted-foreground/20 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
+                        title={isRTL ? "إزالة من السلة" : "Remove"}
+                        className="flex-shrink-0 self-start mt-0.5 w-6 h-6 flex items-center justify-center text-muted-foreground/40 hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
                       >
                         <Trash2 size={12} />
                       </button>

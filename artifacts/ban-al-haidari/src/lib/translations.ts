@@ -120,7 +120,7 @@ export const translations = {
       ],
     },
     products: {
-      label: "الورشة المميزة",
+      label: "الكورسات المسجلة",
       heading1: "ورشة",
       heading2: "الاستقبال والوفرة",
       workshopBadge: "مسجلة",
