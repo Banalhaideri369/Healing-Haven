@@ -190,6 +190,14 @@ export async function apiCreateBooking(data: {
   return res.json() as Promise<ApiBooking>;
 }
 
+export async function apiDeleteBooking(id: string): Promise<void> {
+  const res = await fetch(`${BASE}/admin/bookings/${id}`, {
+    method: "DELETE",
+    headers: await adminHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+}
+
 export async function apiUpdateBookingStatus(
   id: string,
   paymentStatus: "pending" | "paid" | "demo_paid"

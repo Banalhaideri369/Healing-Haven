@@ -5,6 +5,8 @@ import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CartProvider } from "@/contexts/CartContext";
+import { CartDrawer, FloatingCartButton } from "@/components/CartDrawer";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
@@ -44,11 +46,15 @@ function App() {
       <TooltipProvider>
         <AuthProvider>
           <LanguageProvider>
-            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-              <Router />
-            </WouterRouter>
-            <Toaster />
-            <SonnerToaster />
+            <CartProvider>
+              <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+                <Router />
+              </WouterRouter>
+              <CartDrawer />
+              <FloatingCartButton />
+              <Toaster />
+              <SonnerToaster />
+            </CartProvider>
           </LanguageProvider>
         </AuthProvider>
       </TooltipProvider>

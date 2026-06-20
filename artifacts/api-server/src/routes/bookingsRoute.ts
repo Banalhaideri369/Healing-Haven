@@ -68,6 +68,18 @@ router.get("/admin/bookings", requireAdmin, async (req, res) => {
   }
 });
 
+// ── Admin: delete a booking ───────────────────────────────────────────────────
+router.delete("/admin/bookings/:id", requireAdmin, async (req, res) => {
+  const id = String(req.params.id);
+  try {
+    await db.delete(bookingsTable).where(eq(bookingsTable.id, id));
+    res.json({ success: true });
+  } catch (err) {
+    req.log.error({ err }, "DELETE /admin/bookings/:id");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 // ── Admin: update booking payment status ──────────────────────────────────────
 router.patch("/admin/bookings/:id/status", requireAdmin, async (req, res) => {
   const id = String(req.params.id);

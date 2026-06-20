@@ -1,51 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Loader2, BookOpen, Video, Calendar, Clock, CheckCircle2, Circle, Download, CreditCard, RotateCcw } from "lucide-react";
+import {
+  Loader2, BookOpen, Video, Calendar, Clock,
+  CheckCircle2, Circle, CreditCard, RotateCcw, Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { apiGetBookings, apiUpdateBookingStatus, type ApiBooking } from "@/lib/api";
+import { apiGetBookings, apiUpdateBookingStatus, apiDeleteBooking, type ApiBooking } from "@/lib/api";
 
-// ── CSV helpers ────────────────────────────────────────────────────────────────
-function csvCell(value: string | null | undefined): string {
-  const s = (value ?? "").toString();
-  if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
-}
-
-function downloadCSV(bookings: ApiBooking[], isRTL: boolean) {
-  const headers = isRTL
-    ? ["الاسم", "البريد الإلكتروني", "واتساب", "الكورس", "نوع الكورس", "التاريخ", "الوقت", "وصف المشكلة", "حالة الدفع", "تاريخ الحجز"]
-    : ["Name", "Email", "WhatsApp", "Course", "Course Type", "Date", "Time", "Issue Description", "Payment Status", "Booked At"];
-
-  const rows = bookings.map((b) => [
-    csvCell(b.userName),
-    csvCell(b.userEmail),
-    csvCell(b.userWhatsapp),
-    csvCell(b.courseTitle),
-    csvCell(b.courseType),
-    csvCell(b.selectedDate),
-    csvCell(b.selectedTime),
-    csvCell(b.issueDescription),
-    csvCell(b.paymentStatus),
-    csvCell(b.createdAt ? new Date(b.createdAt).toLocaleString() : ""),
-  ].join(","));
-
-  const bom = "\uFEFF";
-  const csv = bom + [headers.map(csvCell).join(","), ...rows].join("\r\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `bookings-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-// ── Component ──────────────────────────────────────────────────────────────────
 export function SubscriptionsTab() {
   const { t, isRTL } = useLanguage();
   const a = t.admin;
@@ -54,6 +16,8 @@ export function SubscriptionsTab() {
   const [loading, setLoading] = useState(true);
   const [confirmStatusId, setConfirmStatusId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -91,6 +55,20 @@ export function SubscriptionsTab() {
     }
   };
 
+  const handleDeleteBooking = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await apiDeleteBooking(id);
+      setBookings((prev) => prev.filter((x) => x.id !== id));
+      setConfirmDeleteId(null);
+      toast.success(isRTL ? "تم حذف الحجز" : "Booking deleted");
+    } catch {
+      toast.error(isRTL ? "فشل الحذف" : "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const recorded = bookings.filter((b) => b.courseType === "recorded");
   const online   = bookings.filter((b) => b.courseType === "online");
   const paid     = bookings.filter((b) => b.paymentStatus === "paid" || b.paymentStatus === "demo_paid");
@@ -101,22 +79,13 @@ export function SubscriptionsTab() {
     try { return new Date(b.createdAt).toLocaleDateString(); } catch { return "—"; }
   };
 
+  const waLink = (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    return digits ? `https://wa.me/${digits}` : null;
+  };
+
   return (
     <div>
-      {/* Header row: title + export button */}
-      <div className="flex items-center justify-between mb-8">
-        <div />
-        {bookings.length > 0 && (
-          <button
-            onClick={() => downloadCSV(bookings, isRTL)}
-            className="flex items-center gap-2 px-4 py-2 border border-primary/30 text-primary text-xs font-semibold uppercase tracking-widest hover:bg-primary/10 transition-colors"
-          >
-            <Download size={13} />
-            {isRTL ? `تصدير CSV (${bookings.length})` : `Export CSV (${bookings.length})`}
-          </button>
-        )}
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {[
@@ -153,7 +122,7 @@ export function SubscriptionsTab() {
       {!loading && bookings.length > 0 && (
         <div className="border border-white/8 overflow-x-auto">
           <div className="h-[1px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-          <table className="w-full text-sm min-w-[640px]">
+          <table className="w-full text-sm min-w-[700px]">
             <thead>
               <tr className="border-b border-white/8 bg-black/20">
                 {[a.colName, a.colEmail, a.colWhatsapp, a.colCourse, a.colDateTime, a.colStatus].map((h) => (
@@ -164,6 +133,7 @@ export function SubscriptionsTab() {
                     {h}
                   </th>
                 ))}
+                <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -173,17 +143,35 @@ export function SubscriptionsTab() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: i * 0.03 }}
-                  className="hover:bg-primary/3 transition-colors"
+                  className="hover:bg-primary/3 transition-colors group"
                 >
+                  {/* Name */}
                   <td className="px-4 py-3 text-foreground/90 font-medium whitespace-nowrap">
                     {b.userName || "—"}
                   </td>
+
+                  {/* Email */}
                   <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
                     {b.userEmail || "—"}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
-                    {b.userWhatsapp || "—"}
+
+                  {/* WhatsApp — clickable wa.me link */}
+                  <td className="px-4 py-3 text-xs whitespace-nowrap">
+                    {b.userWhatsapp && waLink(b.userWhatsapp) ? (
+                      <a
+                        href={waLink(b.userWhatsapp)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-400/70 hover:text-emerald-400 underline underline-offset-2 decoration-emerald-400/30 hover:decoration-emerald-400 transition-colors"
+                      >
+                        {b.userWhatsapp}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">{b.userWhatsapp || "—"}</span>
+                    )}
                   </td>
+
+                  {/* Course */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span
@@ -201,6 +189,8 @@ export function SubscriptionsTab() {
                       </span>
                     </div>
                   </td>
+
+                  {/* Date / Time */}
                   <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
                     <div className="flex items-center gap-1">
                       {b.selectedDate && <Calendar size={11} className="text-primary/40" />}
@@ -208,9 +198,10 @@ export function SubscriptionsTab() {
                       {formatDateTime(b)}
                     </div>
                   </td>
+
+                  {/* Status + status toggle */}
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      {/* Status badge */}
                       <span
                         className={`inline-block text-[10px] px-2 py-0.5 border font-semibold uppercase tracking-wide ${
                           b.paymentStatus === "paid" || b.paymentStatus === "demo_paid"
@@ -225,12 +216,10 @@ export function SubscriptionsTab() {
                           : a.pending}
                       </span>
 
-                      {/* Spinner while saving */}
                       {updatingId === b.id && (
                         <Loader2 size={12} className="animate-spin text-primary/60 flex-shrink-0" />
                       )}
 
-                      {/* Inline confirm: pending → paid */}
                       {updatingId !== b.id && b.paymentStatus === "pending" && (
                         confirmStatusId === b.id ? (
                           <span className="inline-flex items-center gap-1">
@@ -250,7 +239,6 @@ export function SubscriptionsTab() {
                         ) : (
                           <button
                             onClick={() => setConfirmStatusId(b.id)}
-                            title={isRTL ? "تأكيد الدفع" : "Mark as paid"}
                             className="flex items-center gap-1 text-[10px] px-2 py-0.5 border border-emerald-400/20 text-emerald-400/50 hover:border-emerald-400/50 hover:text-emerald-400 transition-colors uppercase tracking-wider"
                           >
                             <CreditCard size={9} />
@@ -259,7 +247,6 @@ export function SubscriptionsTab() {
                         )
                       )}
 
-                      {/* Inline confirm: paid → pending (revert) */}
                       {updatingId !== b.id && (b.paymentStatus === "paid" || b.paymentStatus === "demo_paid") && (
                         confirmStatusId === b.id ? (
                           <span className="inline-flex items-center gap-1">
@@ -287,6 +274,36 @@ export function SubscriptionsTab() {
                         )
                       )}
                     </div>
+                  </td>
+
+                  {/* Delete */}
+                  <td className="px-4 py-3 whitespace-nowrap text-right">
+                    {deletingId === b.id ? (
+                      <Loader2 size={12} className="animate-spin text-red-400/50 inline" />
+                    ) : confirmDeleteId === b.id ? (
+                      <span className="inline-flex items-center gap-1">
+                        <button
+                          onClick={() => void handleDeleteBooking(b.id)}
+                          className="text-[10px] px-2 py-0.5 bg-red-500/15 border border-red-500/40 text-red-400 hover:bg-red-500/25 transition-colors font-semibold uppercase tracking-wider"
+                        >
+                          {isRTL ? "تأكيد" : "Confirm"}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="text-[10px] px-2 py-0.5 border border-white/10 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                        >
+                          {isRTL ? "إلغاء" : "Cancel"}
+                        </button>
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDeleteId(b.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground/30 hover:text-red-400"
+                        title={isRTL ? "حذف الحجز" : "Delete booking"}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
                   </td>
                 </motion.tr>
               ))}
