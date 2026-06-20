@@ -1,12 +1,26 @@
 import type { Request, Response, NextFunction } from "express";
 import { logger } from "./logger";
 
+declare global {
+  namespace Express {
+    interface Request {
+      userEmail?: string;
+      userId?: string;
+    }
+  }
+}
+
 const FIREBASE_API_KEY =
   process.env.VITE_FIREBASE_API_KEY ?? "AIzaSyD_Pdi5xvzp1JTjj9eGxBZDWiThlB2Gge4";
 const ADMIN_EMAIL = "ban.alhaideri369@gmail.com";
 
-/** Verify any authenticated Firebase user; attaches email to req.userEmail */
-export async function verifyToken(token: string): Promise<string | null> {
+interface FirebaseUser {
+  localId?: string;
+  email?: string;
+}
+
+/** Verify a Firebase ID token; returns { uid, email } or null */
+export async function verifyToken(token: string): Promise<{ uid: string; email: string } | null> {
   try {
     const resp = await fetch(
       `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
@@ -17,27 +31,31 @@ export async function verifyToken(token: string): Promise<string | null> {
       },
     );
     if (!resp.ok) return null;
-    const data = (await resp.json()) as { users?: Array<{ email?: string }> };
-    return data.users?.[0]?.email ?? null;
+    const data = (await resp.json()) as { users?: FirebaseUser[] };
+    const user = data.users?.[0];
+    if (!user?.localId || !user?.email) return null;
+    return { uid: user.localId, email: user.email };
   } catch {
     return null;
   }
 }
 
-/** Middleware: require any authenticated user (not necessarily admin) */
+/** Middleware: require any authenticated user; attaches userEmail + userId to req */
 export async function requireAuth(
-  req: Request & { userEmail?: string },
+  req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   const token = (req.headers.authorization ?? "").replace("Bearer ", "").trim();
   if (!token) { res.status(401).json({ error: "Missing authorization token" }); return; }
-  const email = await verifyToken(token);
-  if (!email) { res.status(401).json({ error: "Invalid or expired token" }); return; }
-  req.userEmail = email;
+  const user = await verifyToken(token);
+  if (!user) { res.status(401).json({ error: "Invalid or expired token" }); return; }
+  req.userEmail = user.email;
+  req.userId = user.uid;
   next();
 }
 
+/** Middleware: require admin (ban.alhaideri369@gmail.com) */
 export async function requireAdmin(
   req: Request,
   res: Response,
@@ -49,24 +67,17 @@ export async function requireAdmin(
     return;
   }
   try {
-    const resp = await fetch(
-      `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${FIREBASE_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken: token }),
-      },
-    );
-    if (!resp.ok) {
+    const user = await verifyToken(token);
+    if (!user) {
       res.status(401).json({ error: "Invalid or expired token" });
       return;
     }
-    const data = (await resp.json()) as { users?: Array<{ email?: string }> };
-    const email = data.users?.[0]?.email;
-    if (email !== ADMIN_EMAIL) {
+    if (user.email !== ADMIN_EMAIL) {
       res.status(403).json({ error: "Forbidden: admin access only" });
       return;
     }
+    req.userEmail = user.email;
+    req.userId = user.uid;
     next();
   } catch (err) {
     logger.error({ err }, "Admin auth verification failed");

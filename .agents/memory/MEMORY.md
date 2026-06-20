@@ -1,0 +1,1 @@
+- [Firebase vs PostgreSQL split](firebase-postgres-split.md) — Firebase Auth only; all data (courses, bookings, profiles, users) in Neon PostgreSQL via Drizzle.

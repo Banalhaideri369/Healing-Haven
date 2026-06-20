@@ -7,27 +7,16 @@ import {
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { logOut } from "@/lib/auth";
-import { db } from "@/lib/firebase";
-import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
 import { useLocation } from "wouter";
 import { RecordedCoursesTab } from "@/components/admin/RecordedCoursesTab";
 import { OnlineCoursesTab } from "@/components/admin/OnlineCoursesTab";
 import { SubscriptionsTab } from "@/components/admin/SubscriptionsTab";
 import { WebsiteSettingsTab } from "@/components/admin/WebsiteSettingsTab";
-import { apiGetVapidPublicKey, apiSubscribePush, apiUnsubscribePush } from "@/lib/api";
+import { apiGetVapidPublicKey, apiSubscribePush, apiUnsubscribePush, apiGetUsers, type ApiUserProfile } from "@/lib/api";
 
 type MainTab = "courses" | "bookings" | "users" | "settings";
 type CoursesSubTab = "recorded" | "online";
 type PushStatus = "idle" | "subscribed" | "denied" | "unsupported" | "loading";
-
-interface UserRow {
-  uid: string;
-  email: string;
-  displayName: string;
-  createdAt?: string;
-  bio?: string;
-  phone?: string;
-}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -49,7 +38,7 @@ export default function AdminDashboard() {
   const [mainTab, setMainTab] = useState<MainTab>("courses");
   const [coursesSubTab, setCoursesSubTab] = useState<CoursesSubTab>("recorded");
 
-  const [users, setUsers] = useState<UserRow[]>([]);
+  const [users, setUsers] = useState<ApiUserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // ── Push notification state ──────────────────────────────────────────────────
@@ -109,7 +98,6 @@ export default function AdminDashboard() {
 
       setPushStatus("subscribed");
 
-      // Test notification
       setTimeout(() => {
         void reg.showNotification("🔔 Notifications Enabled!", {
           body: isRTL ? "ستتلقين إشعاراً فورياً مع كل حجز جديد." : "You'll receive instant alerts for every new booking.",
@@ -178,19 +166,22 @@ export default function AdminDashboard() {
     );
   };
 
-  // ── Users ────────────────────────────────────────────────────────────────────
-  const fetchUsers = () => {
-    if (!db || loadingUsers) return;
+  // ── Users — fetched from PostgreSQL via API ───────────────────────────────────
+  const fetchUsers = useCallback(async () => {
+    if (loadingUsers) return;
     setLoadingUsers(true);
-    const q = query(collection(db, "user_profiles"), orderBy("createdAt", "desc"), limit(100));
-    getDocs(q)
-      .then((snap) => setUsers(snap.docs.map((d) => ({ uid: d.id, ...(d.data() as Omit<UserRow, "uid">) }))))
-      .catch(() => setUsers([]))
-      .finally(() => setLoadingUsers(false));
-  };
+    try {
+      const data = await apiGetUsers();
+      setUsers(data);
+    } catch {
+      setUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [loadingUsers]);
 
   useEffect(() => {
-    if (mainTab === "users") fetchUsers();
+    if (mainTab === "users") void fetchUsers();
   }, [mainTab]);
 
   const handleLogout = async () => {
@@ -229,7 +220,6 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {/* Push toggle for subscribed state */}
             {pushStatus === "subscribed" && (
               <button
                 onClick={() => void handleDisablePush()}
@@ -360,7 +350,7 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">{u.phone || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">{u.bio || "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs whitespace-nowrap">
-                          {u.createdAt ? new Date(u.createdAt as unknown as string).toLocaleDateString() : "—"}
+                          {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
                         </td>
                       </tr>
                     ))}

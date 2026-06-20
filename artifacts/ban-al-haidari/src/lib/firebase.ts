@@ -1,5 +1,4 @@
 import { initializeApp, FirebaseApp } from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -13,17 +12,15 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
 let auth: Auth | null = null;
 
 try {
   app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
   auth = getAuth(app);
-  console.log("[Firebase] initialized successfully ✓");
+  console.log("[Firebase Auth] initialized ✓");
 } catch (err) {
   console.error("[Firebase] init failed:", err);
 }
 
-export { app, db, auth };
+export { app, auth };
 export default app;

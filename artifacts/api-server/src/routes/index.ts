@@ -8,6 +8,7 @@ import settingsRouter from "./settings";
 import bannersRouter from "./banners";
 import pushRouter from "./push";
 import testimonialsRouter from "./testimonials";
+import profilesRouter from "./profiles";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(settingsRouter);
 router.use(bannersRouter);
 router.use(pushRouter);
 router.use(testimonialsRouter);
+router.use(profilesRouter);
 
 export default router;

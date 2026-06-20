@@ -1,15 +1,5 @@
-import { db } from "./firebase";
-import {
-  collection,
-  addDoc,
-  onSnapshot,
-  serverTimestamp,
-  query,
-  orderBy,
-  type Timestamp,
-} from "firebase/firestore";
-
 // ─── Types ────────────────────────────────────────────────────────────────────
+// Firestore dependency fully removed. All data operations use PostgreSQL via api.ts.
 
 export interface Booking {
   id: string;
@@ -24,35 +14,7 @@ export interface Booking {
   selectedTime?: string;
   paymentStatus: "demo_paid" | "paid" | "pending";
   paymentSessionId?: string;
-  createdAt: Timestamp;
+  createdAt: string;
 }
 
 export type NewBooking = Omit<Booking, "id" | "createdAt">;
-
-// ─── Firestore ────────────────────────────────────────────────────────────────
-
-export function subscribeBookings(
-  cb: (bookings: Booking[]) => void,
-  onError?: (code: string) => void,
-): () => void {
-  if (!db) { cb([]); return () => {}; }
-  const q = query(collection(db, "bookings"), orderBy("createdAt", "desc"));
-  return onSnapshot(
-    q,
-    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Booking, "id">) }))),
-    (err) => {
-      console.warn("[bookings] Firestore error:", err.code);
-      cb([]);
-      onError?.(err.code);
-    },
-  );
-}
-
-export async function addBooking(data: NewBooking): Promise<string> {
-  if (!db) throw new Error("DB not initialized");
-  const ref = await addDoc(collection(db, "bookings"), {
-    ...data,
-    createdAt: serverTimestamp(),
-  });
-  return ref.id;
-}

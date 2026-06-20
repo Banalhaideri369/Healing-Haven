@@ -300,6 +300,28 @@ export async function apiGetMyBookings(): Promise<ApiBooking[]> {
   }
 }
 
+// ─── User Profiles (admin + own) ──────────────────────────────────────────────
+
+export interface ApiUserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  bio: string;
+  intention: string;
+  phone: string;
+  recentActivity: Array<{ id: string; label: string; date: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function apiGetUsers(): Promise<ApiUserProfile[]> {
+  const res = await fetch(`${BASE}/admin/users`, {
+    headers: await adminHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiUserProfile[]>;
+}
+
 // ─── Client Testimonials ───────────────────────────────────────────────────────
 
 export interface ApiTestimonial {

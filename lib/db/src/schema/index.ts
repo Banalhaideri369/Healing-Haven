@@ -110,3 +110,19 @@ export const siteSettingsTable = pgTable("site_settings", {
 });
 
 export type SiteSettingRow = typeof siteSettingsTable.$inferSelect;
+
+// ─── User Profiles ────────────────────────────────────────────────────────────
+
+export const userProfilesTable = pgTable("user_profiles", {
+  uid: text("uid").primaryKey(),
+  email: text("email").notNull().default(""),
+  displayName: text("display_name").notNull().default(""),
+  bio: text("bio").notNull().default(""),
+  intention: text("intention").notNull().default(""),
+  phone: text("phone").notNull().default(""),
+  recentActivity: jsonb("recent_activity").notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type UserProfileRow = typeof userProfilesTable.$inferSelect;
