@@ -289,12 +289,13 @@ export default function BookingPage() {
     setPaying(true);
     setError("");
     try {
-      const res = await fetch("/api/checkout/session", { method: "POST" });
+      const apiOrigin = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+      const res = await fetch(`${apiOrigin}/api/checkout/session`, { method: "POST" });
       if (!res.ok) throw new Error("checkout-failed");
       const data = (await res.json()) as { url?: string };
-      const sessionId = data.url
-        ? new URL(data.url).searchParams.get("session_id") ?? `demo_${Date.now()}`
-        : `demo_${Date.now()}`;
+      if (!data.url) throw new Error("checkout-failed");
+      const sessionId =
+        new URL(data.url).searchParams.get("session_id") ?? data.url;
 
       await apiCreateBooking({
         courseId, courseTitle: course?.title ?? "",
