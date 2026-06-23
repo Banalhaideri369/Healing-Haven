@@ -159,7 +159,7 @@ export default function Profile() {
         duration: 4000,
       });
     } catch {
-      toast.error(isRTL ? "فشل الحفظ، حاولي مجدداً" : "Save failed, please try again", { duration: 4000 });
+      toast.error(isRTL ? "فشل الحفظ، حاول مجدداً" : "Save failed, please try again", { duration: 4000 });
     } finally {
       setSaving(false);
     }
