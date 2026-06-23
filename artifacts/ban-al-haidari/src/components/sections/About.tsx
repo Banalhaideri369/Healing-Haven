@@ -59,8 +59,8 @@ export function About() {
               {t.about.label}
             </h2>
             <h3 className="font-serif text-4xl md:text-5xl lg:text-6xl text-foreground mb-2 leading-tight">
-              {t.about.heading1}{" "}
-              <span className="gold-gradient-text">{t.about.heading2}</span>
+              <span style={{ fontFamily: "Tajawal, sans-serif" }}>{t.about.heading1}</span>{" "}
+              <span className="gold-gradient-text" style={{ fontFamily: "Tajawal, sans-serif" }}>{t.about.heading2}</span>
             </h3>
             <p className="text-muted uppercase tracking-widest text-sm mb-8 font-light">
               {t.about.subtitle}
