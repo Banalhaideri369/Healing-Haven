@@ -52,13 +52,8 @@ router.post("/checkout/session", async (req, res) => {
       payment_method_types: ["card"],
       line_items: items.map((item) => {
         const unitAmount = Math.round(Number(item.price) * 100);
-        const imageUrl =
-          item.image
-            ? item.image.startsWith("http")
-              ? item.image
-              : `${baseUrl}${item.image}`
-            : undefined;
 
+        // Never pass images to Stripe — stored images may be base64 or exceed the 2048-char URL limit
         return {
           price_data: {
             currency: "usd",
@@ -66,7 +61,6 @@ router.post("/checkout/session", async (req, res) => {
             product_data: {
               name: item.title,
               ...(item.description ? { description: item.description } : {}),
-              ...(imageUrl ? { images: [imageUrl] } : {}),
             },
           },
           quantity: 1,
