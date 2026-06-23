@@ -202,7 +202,7 @@ export function OnlineCoursesTab() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setEditingCourse(course)}
-                      title="تعديل"
+                      title={a.editBtn}
                       className="text-muted-foreground/40 hover:text-primary transition-colors"
                     >
                       <Pencil size={13} />

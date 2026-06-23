@@ -159,11 +159,11 @@ export function RecordedCoursesTab() {
                   <div className="flex-1" />
                   <button
                     onClick={() => setEditingCourse(course)}
-                    title="تعديل"
+                    title={a.editBtn}
                     className="flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-primary transition-colors"
                   >
                     <Pencil size={13} />
-                    {(t as { admin: { editBtn?: string } }).admin.editBtn ?? "تعديل"}
+                    {a.editBtn}
                   </button>
                   {confirmDelete === course.id ? (
                     <div className="flex items-center gap-2">

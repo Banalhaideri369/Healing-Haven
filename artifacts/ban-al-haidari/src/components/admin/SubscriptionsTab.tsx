@@ -114,7 +114,7 @@ export function SubscriptionsTab() {
         <div className="text-center py-20 border border-dashed border-white/8">
           <p className="text-muted-foreground/50 text-sm">{a.noBookings}</p>
           <p className="text-xs text-muted-foreground/30 mt-2">
-            ستظهر هنا بيانات المشتركين بمجرد تسجيل أول حجز.
+            {a.subscriptionEmptyHint}
           </p>
         </div>
       )}
