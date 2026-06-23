@@ -166,11 +166,16 @@ function RecordedCourseCard({
     });
   };
 
-  const handleBuyNow = () => {
-    if (course.telegramLink) {
-      window.open(course.telegramLink, "_blank", "noopener,noreferrer");
-    } else {
-      toast(isRTL ? "سيتم ربط بوابة الدفع قريباً" : "Payment gateway coming soon");
+  const handleBuyNow = async () => {
+    try {
+      const apiOrigin = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+      const res = await fetch(`${apiOrigin}/api/checkout/session`, { method: "POST" });
+      if (!res.ok) throw new Error("checkout-failed");
+      const data = (await res.json()) as { url?: string };
+      if (!data.url) throw new Error("checkout-failed");
+      window.location.href = data.url;
+    } catch {
+      toast.error(isRTL ? "حدث خطأ، يرجى المحاولة مجدداً." : "Something went wrong. Please try again.");
     }
   };
 

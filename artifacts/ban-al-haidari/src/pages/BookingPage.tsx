@@ -302,17 +302,17 @@ export default function BookingPage() {
         courseType: "online",
         userName, userEmail, userWhatsapp, issueDescription,
         selectedDate, selectedTime,
-        paymentStatus: "demo_paid",
+        paymentStatus: "pending",
         paymentSessionId: sessionId,
       });
 
-      fetch("/api/notify/booking", {
+      fetch(`${apiOrigin}/api/notify/booking`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName, userEmail, userWhatsapp, issueDescription, courseName: course?.title ?? "", courseType: "online", selectedDate, selectedTime }),
       }).catch(() => {});
 
-      setStep(4);
+      window.location.href = data.url;
     } catch {
       setError(isRTL ? "حدث خطأ، يرجى المحاولة مجدداً." : "Something went wrong. Please try again.");
     } finally {
