@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ShoppingCart, Trash2, CreditCard } from "lucide-react";
+import { X, ShoppingCart, Trash2, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -7,15 +8,35 @@ import { useLanguage } from "@/contexts/LanguageContext";
 export function CartDrawer() {
   const { items, remove, clear, isOpen, closeCart } = useCart();
   const { isRTL } = useLanguage();
+  const [loading, setLoading] = useState(false);
 
   const total = items.reduce((sum, item) => sum + item.finalPrice, 0);
 
-  const handleCheckout = () => {
-    toast(isRTL ? "سيتم ربط بوابة الدفع قريباً 🛒" : "Payment gateway coming soon 🛒", {
-      description: isRTL
-        ? "شكراً لاهتمامك، نعمل على تفعيل الدفع الآن."
-        : "Thank you for your interest. Payment integration is in progress.",
-    });
+  const handleCheckout = async () => {
+    if (items.length === 0) return;
+    setLoading(true);
+    try {
+      const apiOrigin = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+      const res = await fetch(`${apiOrigin}/api/checkout/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            title: item.title,
+            price: item.finalPrice,
+            image: item.image ?? "",
+          })),
+        }),
+      });
+      if (!res.ok) throw new Error("checkout-failed");
+      const data = (await res.json()) as { url?: string };
+      if (!data.url) throw new Error("checkout-failed");
+      window.location.href = data.url;
+    } catch {
+      toast.error(isRTL ? "حدث خطأ في بوابة الدفع، يرجى المحاولة مجدداً." : "Payment gateway error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -130,16 +151,16 @@ export function CartDrawer() {
                 </div>
 
                 <button
-                  onClick={handleCheckout}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-widest hover:bg-primary/90 active:scale-[0.98] transition-all"
+                  onClick={() => void handleCheckout()}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground text-xs font-semibold uppercase tracking-widest hover:bg-primary/90 active:scale-[0.98] disabled:opacity-60 transition-all"
                 >
-                  <CreditCard size={13} />
-                  {isRTL ? "إتمام الشراء" : "Checkout"}
+                  {loading ? (
+                    <><Loader2 size={13} className="animate-spin" />{isRTL ? "جاري التحويل..." : "Redirecting..."}</>
+                  ) : (
+                    <><CreditCard size={13} />{isRTL ? "إتمام الشراء عبر Stripe" : "Checkout with Stripe"}</>
+                  )}
                 </button>
-
-                <p className="text-center text-[10px] text-muted-foreground/25 uppercase tracking-widest">
-                  {isRTL ? "بوابة الدفع ستُفعَّل قريباً" : "Payment gateway coming soon"}
-                </p>
 
                 <button
                   onClick={clear}

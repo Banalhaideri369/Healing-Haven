@@ -290,7 +290,16 @@ export default function BookingPage() {
     setError("");
     try {
       const apiOrigin = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
-      const res = await fetch(`${apiOrigin}/api/checkout/session`, { method: "POST" });
+      const res = await fetch(`${apiOrigin}/api/checkout/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: course?.title ?? "",
+          price: course?.price ?? 0,
+          image: course?.image ?? "",
+          description: course?.description ?? "",
+        }),
+      });
       if (!res.ok) throw new Error("checkout-failed");
       const data = (await res.json()) as { url?: string };
       if (!data.url) throw new Error("checkout-failed");

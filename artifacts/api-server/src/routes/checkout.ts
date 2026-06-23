@@ -16,28 +16,61 @@ function getBaseUrl(req: Parameters<Parameters<IRouter["post"]>[1]>[0]): string 
   return `${proto}://${host}`;
 }
 
+interface CheckoutItem {
+  title: string;
+  price: number;
+  image?: string;
+  description?: string;
+}
+
 router.post("/checkout/session", async (req, res) => {
+  const body = req.body as {
+    items?: CheckoutItem[];
+    title?: string;
+    price?: number;
+    image?: string;
+    description?: string;
+  };
+
+  // Resolve items array — either multi-item cart or single product
+  let items: CheckoutItem[];
+  if (Array.isArray(body.items) && body.items.length > 0) {
+    items = body.items;
+  } else if (body.title && typeof body.price === "number" && body.price > 0) {
+    items = [{ title: body.title, price: body.price, image: body.image, description: body.description }];
+  } else {
+    res.status(400).json({ error: "Product information required: title and price must be provided." });
+    return;
+  }
+
   const baseUrl = getBaseUrl(req);
 
   try {
     const stripe = await getStripeClient();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      line_items: [
-        {
+      line_items: items.map((item) => {
+        const unitAmount = Math.round(item.price * 100);
+        const imageUrl =
+          item.image
+            ? item.image.startsWith("http")
+              ? item.image
+              : `${baseUrl}${item.image}`
+            : undefined;
+
+        return {
           price_data: {
             currency: "usd",
-            unit_amount: 15000,
+            unit_amount: unitAmount,
             product_data: {
-              name: "ورشة الاستقبال والوفرة — Abundance Reception Workshop",
-              description:
-                "Recorded workshop: break free from receiving resistance, elevate worthiness, open abundance pathways.",
-              images: [`${baseUrl}/workshop-cover.jpg`],
+              name: item.title,
+              ...(item.description ? { description: item.description } : {}),
+              ...(imageUrl ? { images: [imageUrl] } : {}),
             },
           },
           quantity: 1,
-        },
-      ],
+        };
+      }),
       mode: "payment",
       success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/#products`,
@@ -65,7 +98,7 @@ router.get("/checkout/verify", async (req, res) => {
       res.json({
         success: true,
         telegramUrl: TELEGRAM_URL,
-        productName: "ورشة الاستقبال والوفرة",
+        productName: session.metadata?.["productName"] ?? "",
       });
     } else {
       res.status(402).json({

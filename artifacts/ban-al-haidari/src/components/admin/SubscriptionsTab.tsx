@@ -298,7 +298,7 @@ export function SubscriptionsTab() {
                     ) : (
                       <button
                         onClick={() => setConfirmDeleteId(b.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-muted-foreground/30 hover:text-red-400"
+                        className="p-1.5 rounded text-red-400/70 hover:text-red-400 hover:bg-red-400/10 border border-red-400/20 hover:border-red-400/40 transition-colors"
                         title={isRTL ? "حذف الحجز" : "Delete booking"}
                       >
                         <Trash2 size={13} />
