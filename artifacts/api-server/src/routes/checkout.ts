@@ -33,11 +33,12 @@ router.post("/checkout/session", async (req, res) => {
   };
 
   // Resolve items array — either multi-item cart or single product
+  // Coerce price to number — DB/frontend may send it as a string
   let items: CheckoutItem[];
   if (Array.isArray(body.items) && body.items.length > 0) {
-    items = body.items;
-  } else if (body.title && typeof body.price === "number" && body.price > 0) {
-    items = [{ title: body.title, price: body.price, image: body.image, description: body.description }];
+    items = body.items.map((i) => ({ ...i, price: Number(i.price) }));
+  } else if (body.title && Number(body.price) > 0) {
+    items = [{ title: body.title, price: Number(body.price), image: body.image, description: body.description }];
   } else {
     res.status(400).json({ error: "Product information required: title and price must be provided." });
     return;
@@ -50,7 +51,7 @@ router.post("/checkout/session", async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: items.map((item) => {
-        const unitAmount = Math.round(item.price * 100);
+        const unitAmount = Math.round(Number(item.price) * 100);
         const imageUrl =
           item.image
             ? item.image.startsWith("http")
