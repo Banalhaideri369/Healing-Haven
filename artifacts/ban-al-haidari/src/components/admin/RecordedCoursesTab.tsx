@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Send, Tag, Loader2 } from "lucide-react";
+import { Plus, Trash2, Send, Tag, Loader2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { finalPrice } from "@/lib/courses";
@@ -23,6 +23,7 @@ export function RecordedCoursesTab() {
   const [courses, setCourses] = useState<ApiRecordedCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<ApiRecordedCourse | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const load = useCallback(async () => {
@@ -156,6 +157,14 @@ export function RecordedCoursesTab() {
                     </a>
                   )}
                   <div className="flex-1" />
+                  <button
+                    onClick={() => setEditingCourse(course)}
+                    title="تعديل"
+                    className="flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-primary transition-colors"
+                  >
+                    <Pencil size={13} />
+                    {(t as { admin: { editBtn?: string } }).admin.editBtn ?? "تعديل"}
+                  </button>
                   {confirmDelete === course.id ? (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-red-400">{a.deleteConfirm}</span>
@@ -199,6 +208,24 @@ export function RecordedCoursesTab() {
           mode="recorded"
           onClose={() => setShowAdd(false)}
           onSaved={() => { void load(); setShowAdd(false); }}
+        />
+      )}
+
+      {editingCourse && (
+        <CourseFormModal
+          mode="recorded"
+          editId={editingCourse.id}
+          initialData={{
+            title: editingCourse.title,
+            description: editingCourse.description ?? "",
+            image: editingCourse.image ?? "",
+            telegramLink: editingCourse.telegramLink ?? "",
+            price: editingCourse.price,
+            discountEnabled: editingCourse.discountEnabled,
+            discountPercent: editingCourse.discountPercent,
+          }}
+          onClose={() => setEditingCourse(null)}
+          onSaved={() => { void load(); setEditingCourse(null); }}
         />
       )}
     </div>

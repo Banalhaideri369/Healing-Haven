@@ -44,10 +44,10 @@ export function finalPrice(
 
 export const DEFAULT_AVAILABILITY: Availability = {
   sun: { enabled: false, slots: [] },
-  mon: { enabled: true,  slots: ["09:00", "10:00", "11:00", "14:00", "15:00"] },
-  tue: { enabled: true,  slots: ["09:00", "10:00", "11:00", "14:00", "15:00"] },
-  wed: { enabled: true,  slots: ["09:00", "10:00", "11:00", "14:00", "15:00"] },
-  thu: { enabled: true,  slots: ["09:00", "10:00", "11:00", "14:00", "15:00"] },
+  mon: { enabled: false, slots: [] },
+  tue: { enabled: false, slots: [] },
+  wed: { enabled: false, slots: [] },
+  thu: { enabled: false, slots: [] },
   fri: { enabled: false, slots: [] },
   sat: { enabled: false, slots: [] },
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, ChevronDown, ChevronUp, Loader2, Video } from "lucide-react";
+import { Plus, Trash2, ChevronDown, ChevronUp, Loader2, Video, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { type Availability } from "@/lib/courses";
@@ -25,6 +25,7 @@ export function OnlineCoursesTab() {
   const [courses, setCourses] = useState<ApiOnlineCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<ApiOnlineCourse | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -198,34 +199,44 @@ export function OnlineCoursesTab() {
                     {a.schedule}
                   </button>
 
-                  {confirmDelete === course.id ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleDelete(course.id)}
-                        disabled={deletingId === course.id}
-                        className="text-[10px] text-red-400 border border-red-400/30 px-2 py-1 hover:bg-red-400/10 transition-colors"
-                      >
-                        {deletingId === course.id ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : (
-                          a.deleteYes
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setConfirmDelete(null)}
-                        className="text-[10px] text-muted-foreground border border-white/10 px-2 py-1"
-                      >
-                        {a.deleteNo}
-                      </button>
-                    </div>
-                  ) : (
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setConfirmDelete(course.id)}
-                      className="text-muted-foreground/40 hover:text-red-400 transition-colors"
+                      onClick={() => setEditingCourse(course)}
+                      title="تعديل"
+                      className="text-muted-foreground/40 hover:text-primary transition-colors"
                     >
-                      <Trash2 size={13} />
+                      <Pencil size={13} />
                     </button>
-                  )}
+
+                    {confirmDelete === course.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleDelete(course.id)}
+                          disabled={deletingId === course.id}
+                          className="text-[10px] text-red-400 border border-red-400/30 px-2 py-1 hover:bg-red-400/10 transition-colors"
+                        >
+                          {deletingId === course.id ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : (
+                            a.deleteYes
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(null)}
+                          className="text-[10px] text-muted-foreground border border-white/10 px-2 py-1"
+                        >
+                          {a.deleteNo}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmDelete(course.id)}
+                        className="text-muted-foreground/40 hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -271,6 +282,21 @@ export function OnlineCoursesTab() {
           mode="online"
           onClose={() => setShowAdd(false)}
           onSaved={() => { void load(); setShowAdd(false); }}
+        />
+      )}
+
+      {editingCourse && (
+        <CourseFormModal
+          mode="online"
+          editId={editingCourse.id}
+          initialData={{
+            title: editingCourse.title,
+            description: editingCourse.description ?? "",
+            image: editingCourse.image ?? "",
+            price: editingCourse.price,
+          }}
+          onClose={() => setEditingCourse(null)}
+          onSaved={() => { void load(); setEditingCourse(null); }}
         />
       )}
     </div>

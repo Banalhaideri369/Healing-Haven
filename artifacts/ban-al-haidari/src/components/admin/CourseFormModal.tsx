@@ -4,15 +4,41 @@ import { X, Loader2, Upload, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { DEFAULT_AVAILABILITY } from "@/lib/courses";
-import { apiCreateRecordedCourse, apiCreateOnlineCourse } from "@/lib/api";
+import {
+  apiCreateRecordedCourse,
+  apiCreateOnlineCourse,
+  apiUpdateRecordedCourse,
+  apiUpdateOnlineCourse,
+  type ApiRecordedCourse,
+  type ApiOnlineCourse,
+} from "@/lib/api";
 
 type Mode = "recorded" | "online";
 type ImgMode = "upload" | "url";
 
+interface InitialRecorded {
+  title: string;
+  description: string;
+  image: string;
+  telegramLink: string;
+  price: number;
+  discountEnabled: boolean;
+  discountPercent: number;
+}
+
+interface InitialOnline {
+  title: string;
+  description: string;
+  image: string;
+  price: number;
+}
+
 interface Props {
   mode: Mode;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (updated?: ApiRecordedCourse | ApiOnlineCourse) => void;
+  editId?: string;
+  initialData?: InitialRecorded | InitialOnline;
 }
 
 function compressImage(file: File): Promise<string> {
@@ -41,22 +67,26 @@ function compressImage(file: File): Promise<string> {
   });
 }
 
-export function CourseFormModal({ mode, onClose, onSaved }: Props) {
+export function CourseFormModal({ mode, onClose, onSaved, editId, initialData }: Props) {
   const { t, isRTL } = useLanguage();
   const a = t.admin;
+  const isEdit = !!editId;
+
+  const initRecorded = mode === "recorded" ? (initialData as InitialRecorded | undefined) : undefined;
+  const initOnline = mode === "online" ? (initialData as InitialOnline | undefined) : undefined;
 
   const [saving, setSaving] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [image, setImage] = useState("");
-  const [imgMode, setImgMode] = useState<ImgMode>("upload");
+  const [title, setTitle] = useState(initialData?.title ?? "");
+  const [description, setDescription] = useState(initialData?.description ?? "");
+  const [image, setImage] = useState(initialData?.image ?? "");
+  const [imgMode, setImgMode] = useState<ImgMode>("url");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [telegramLink, setTelegramLink] = useState("");
-  const [price, setPrice] = useState<string>("");
-  const [discountEnabled, setDiscountEnabled] = useState(false);
-  const [discountPercent, setDiscountPercent] = useState<string>("10");
-  const [sessionPrice, setSessionPrice] = useState<string>("");
+  const [telegramLink, setTelegramLink] = useState(initRecorded?.telegramLink ?? "");
+  const [price, setPrice] = useState<string>(initRecorded ? String(initRecorded.price || "") : "");
+  const [discountEnabled, setDiscountEnabled] = useState(initRecorded?.discountEnabled ?? false);
+  const [discountPercent, setDiscountPercent] = useState<string>(initRecorded ? String(initRecorded.discountPercent || "10") : "10");
+  const [sessionPrice, setSessionPrice] = useState<string>(initOnline ? String(initOnline.price || "") : "");
 
   const parsedPrice = parseFloat(price) || 0;
   const parsedDiscount = parseFloat(discountPercent) || 0;
@@ -91,21 +121,38 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
     setSaving(true);
     try {
       if (mode === "recorded") {
-        await apiCreateRecordedCourse({
+        const payload = {
           title: title.trim(), description: description.trim(),
           image: image.trim(), telegramLink: telegramLink.trim(),
           price: parsedPrice, discountEnabled, discountPercent: parsedDiscount,
-        });
-        toast.success(a.saveSuccessRecorded);
+        };
+        let result: ApiRecordedCourse;
+        if (isEdit && editId) {
+          result = await apiUpdateRecordedCourse(editId, payload);
+          toast.success(isRTL ? "تم تحديث الكورس بنجاح" : "Course updated successfully");
+        } else {
+          result = await apiCreateRecordedCourse(payload);
+          toast.success(a.saveSuccessRecorded);
+        }
+        onSaved(result);
       } else {
-        await apiCreateOnlineCourse({
+        const payload = {
           title: title.trim(), description: description.trim(),
           image: image.trim(), price: parsedSessionPrice,
-          status: "available", availability: DEFAULT_AVAILABILITY,
-        });
-        toast.success(a.saveSuccessOnline);
+        };
+        let result: ApiOnlineCourse;
+        if (isEdit && editId) {
+          result = await apiUpdateOnlineCourse(editId, payload);
+          toast.success(isRTL ? "تم تحديث الكورس بنجاح" : "Course updated successfully");
+        } else {
+          result = await apiCreateOnlineCourse({
+            ...payload,
+            status: "available", availability: DEFAULT_AVAILABILITY,
+          });
+          toast.success(a.saveSuccessOnline);
+        }
+        onSaved(result);
       }
-      onSaved();
       onClose();
     } catch (err) {
       console.error(err);
@@ -115,8 +162,6 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
     }
   };
 
-  // Use createPortal so the modal renders directly in document.body,
-  // bypassing any Framer Motion transform context that breaks position:fixed on mobile
   return createPortal(
     <div
       style={{
@@ -129,13 +174,11 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
         padding: "1rem",
       }}
     >
-      {/* Backdrop */}
       <div
         style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.82)", backdropFilter: "blur(4px)" }}
         onClick={onClose}
       />
 
-      {/* Modal card */}
       <div
         dir={isRTL ? "rtl" : "ltr"}
         style={{
@@ -156,7 +199,10 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0 }}>
           <h3 style={{ fontFamily: "serif", fontSize: "1.1rem", color: "var(--foreground)", margin: 0 }}>
-            {mode === "recorded" ? a.addRecordedTitle : a.addOnlineTitle}
+            {isEdit
+              ? (isRTL ? "تعديل الكورس" : "Edit Course")
+              : (mode === "recorded" ? a.addRecordedTitle : a.addOnlineTitle)
+            }
           </h3>
           <button
             onClick={onClose}
@@ -175,7 +221,6 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
           <div>
             <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">{a.fieldImage}</label>
 
-            {/* Toggle */}
             <div className="flex mb-3 border border-white/10 rounded-sm overflow-hidden">
               {(["upload", "url"] as ImgMode[]).map((m) => (
                 <button
@@ -203,7 +248,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
                 >
                   {uploading ? (
                     <><Loader2 size={20} className="animate-spin text-primary" /><span className="text-xs">{isRTL ? "جاري المعالجة..." : "Processing..."}</span></>
-                  ) : image && image.startsWith("data:") ? (
+                  ) : image ? (
                     <><img src={image} alt="preview" className="h-16 object-cover rounded" /><span className="text-xs text-primary">{isRTL ? "انقر لتغيير الصورة" : "Click to change"}</span></>
                   ) : (
                     <><Upload size={20} /><span className="text-xs">{isRTL ? "اضغط لاختيار صورة من جهازك" : "Tap to select an image"}</span></>
@@ -323,7 +368,7 @@ export function CourseFormModal({ mode, onClose, onSaved }: Props) {
             className="flex items-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground text-sm font-semibold uppercase tracking-wider hover:bg-primary/90 disabled:opacity-60 transition-colors rounded-sm"
           >
             {saving && <Loader2 size={14} className="animate-spin" />}
-            {saving ? a.savingBtn : a.save}
+            {saving ? a.savingBtn : (isEdit ? (isRTL ? "حفظ التعديلات" : "Save Changes") : a.save)}
           </button>
         </div>
 

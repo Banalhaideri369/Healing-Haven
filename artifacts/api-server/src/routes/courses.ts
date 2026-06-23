@@ -66,6 +66,36 @@ router.post("/admin/courses/recorded", requireAdmin, async (req, res) => {
   }
 });
 
+// ── Admin: update recorded course ─────────────────────────────────────────────
+router.patch("/admin/courses/recorded/:id", requireAdmin, async (req, res) => {
+  const b = req.body as {
+    title?: string; description?: string; image?: string;
+    telegramLink?: string; price?: number;
+    discountEnabled?: boolean; discountPercent?: number;
+  };
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if (b.title !== undefined) updateData.title = b.title;
+  if (b.description !== undefined) updateData.description = b.description;
+  if (b.image !== undefined) updateData.image = b.image;
+  if (b.telegramLink !== undefined) updateData.telegramLink = b.telegramLink;
+  if (b.price !== undefined) updateData.price = b.price;
+  if (b.discountEnabled !== undefined) updateData.discountEnabled = b.discountEnabled;
+  if (b.discountPercent !== undefined) updateData.discountPercent = b.discountPercent;
+
+  try {
+    const rows = await db
+      .update(recordedCoursesTable)
+      .set(updateData)
+      .where(eq(recordedCoursesTable.id, String(req.params.id)))
+      .returning();
+    if (rows.length === 0) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(rows[0]);
+  } catch (err) {
+    req.log.error({ err }, "PATCH /admin/courses/recorded/:id");
+    res.status(500).json({ error: "Internal error" });
+  }
+});
+
 // ── Admin: delete recorded course ─────────────────────────────────────────────
 router.delete("/admin/courses/recorded/:id", requireAdmin, async (req, res) => {
   try {

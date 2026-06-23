@@ -81,6 +81,20 @@ export async function apiCreateRecordedCourse(data: {
   return res.json() as Promise<ApiRecordedCourse>;
 }
 
+export async function apiUpdateRecordedCourse(id: string, data: Partial<{
+  title: string; description: string; image: string;
+  telegramLink: string; price: number;
+  discountEnabled: boolean; discountPercent: number;
+}>): Promise<ApiRecordedCourse> {
+  const res = await fetch(`${BASE}/admin/courses/recorded/${id}`, {
+    method: "PATCH",
+    headers: await adminHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json() as Promise<ApiRecordedCourse>;
+}
+
 export async function apiDeleteRecordedCourse(id: string): Promise<void> {
   const res = await fetch(`${BASE}/admin/courses/recorded/${id}`, {
     method: "DELETE",
