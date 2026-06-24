@@ -2,6 +2,22 @@
 
 _Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
 
+## GitHub Backup
+
+The project is backed up to **https://github.com/Banalhaidari369/Healing-Haven** (private repo).
+
+To push the latest code to GitHub, run:
+```bash
+bash scripts/push-to-github.sh
+```
+
+**Setup (already done):**
+- `GITHUB_TOKEN` Replit secret — classic PAT with `repo` scope for user `Banalhaideri369`
+- Git remote `origin` points to the correct GitHub URL
+- A `credential.helper` in `.git/config` reads `GITHUB_TOKEN` at push time — no manual password entry needed
+
+**Note:** The GitHub username in the remote URL is `Banalhaideri369` (ends in **eri**, not **ari**) — keep this spelling exact.
+
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
