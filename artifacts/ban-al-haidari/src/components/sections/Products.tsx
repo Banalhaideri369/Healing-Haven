@@ -4,83 +4,9 @@ import { ShoppingBag, Calendar, Loader2, Send, Tag, ShoppingCart } from "lucide-
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { apiGetRecordedCourses, apiGetOnlineCourses, type ApiRecordedCourse, type ApiOnlineCourse } from "@/lib/api";
-import { finalPrice, DEFAULT_AVAILABILITY } from "@/lib/courses";
+import { finalPrice } from "@/lib/courses";
 import { useCart } from "@/contexts/CartContext";
 import { useLocation } from "wouter";
-
-// ── Static fallback data shown when the API is unavailable ───────────────────
-const FALLBACK_RECORDED: ApiRecordedCourse[] = [
-  {
-    id: "WA0001",
-    title: "ورشة الاستحقاق والوفرة",
-    description: "ورشة تحويلية مسجّلة تأخذك في رحلة عميقة نحو الاستحقاق والوفرة. اكتشفي المعتقدات المحدِّدة وحرِّري طاقتك نحو الازدهار.",
-    image: "/images/course-workshop-abundance.jpg",
-    telegramLink: "",
-    price: 111,
-    discountEnabled: false,
-    discountPercent: 0,
-    createdAt: "",
-    updatedAt: "",
-  },
-];
-
-const FALLBACK_ONLINE: ApiOnlineCourse[] = [
-  {
-    id: "WA0002",
-    title: "الغسيل الطاقي",
-    description: "جلسة فردية متخصصة لتنقية الحقل الطاقي وإزالة الترسبات والطاقات الثقيلة التي تعيق تدفق الوفرة والصحة.",
-    image: "/images/course-energy-cleanse.jpg",
-    price: 250,
-    status: "available",
-    availability: DEFAULT_AVAILABILITY,
-    createdAt: "",
-    updatedAt: "",
-  },
-  {
-    id: "WA0003",
-    title: "فتح مسارات المال",
-    description: "جلسة متخصصة لفتح الحجب الطاقية المرتبطة بالمال والرزق، وبرمجة الوعي على الوفرة.",
-    image: "/images/course-money-paths.jpg",
-    price: 250,
-    status: "available",
-    availability: DEFAULT_AVAILABILITY,
-    createdAt: "",
-    updatedAt: "",
-  },
-  {
-    id: "WA0004",
-    title: "التحرر من المعتقدات",
-    description: "جلسة عميقة لاكتشاف وتحرير المعتقدات المحدِّدة التي تمنعك من الوصول إلى كامل إمكانياتك.",
-    image: "/images/course-beliefs-liberation.jpg",
-    price: 150,
-    status: "available",
-    availability: DEFAULT_AVAILABILITY,
-    createdAt: "",
-    updatedAt: "",
-  },
-  {
-    id: "WA0005",
-    title: "الاستحقاق والوفرة",
-    description: "جلسة فردية لتعزيز الشعور بالاستحقاق وفتح بوابات الوفرة في حياتك.",
-    image: "/images/course-worthiness-abundance.jpg",
-    price: 150,
-    status: "available",
-    availability: DEFAULT_AVAILABILITY,
-    createdAt: "",
-    updatedAt: "",
-  },
-  {
-    id: "WA0006",
-    title: "برنامج نداء الروح VIP",
-    description: "برنامج VIP شامل ومكثف لمن يسعى إلى تحول جذري عميق. تجربة شفاء فريدة من نوعها.",
-    image: "/images/course-soul-call.jpg",
-    price: 1500,
-    status: "available",
-    availability: DEFAULT_AVAILABILITY,
-    createdAt: "",
-    updatedAt: "",
-  },
-];
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
@@ -97,14 +23,12 @@ export function Products() {
 
   useEffect(() => {
     Promise.all([
-      apiGetRecordedCourses().catch(() => null),
-      apiGetOnlineCourses().catch(() => null),
+      apiGetRecordedCourses().catch(() => [] as ApiRecordedCourse[]),
+      apiGetOnlineCourses().catch(() => [] as ApiOnlineCourse[]),
     ])
       .then(([rec, onl]) => {
-        setRecordedCourses(rec ?? FALLBACK_RECORDED);
-        setOnlineCourses(
-          (onl ?? FALLBACK_ONLINE).filter((c) => c.status === "available"),
-        );
+        setRecordedCourses(rec);
+        setOnlineCourses(onl.filter((c) => c.status === "available"));
       })
       .finally(() => setLoading(false));
   }, []);

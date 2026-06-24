@@ -1,8 +1,16 @@
 [build]
   base    = "artifacts/ban-al-haidari"
-  command = "pnpm install && pnpm run build"
+  command = "corepack enable && pnpm install && pnpm run build"
   publish = "dist/public"
 
+[functions]
+  directory    = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from   = "/api/*"
+  to     = "/.netlify/functions/api/:splat"
+  status = 200
 
 [[redirects]]
   from   = "/*"
