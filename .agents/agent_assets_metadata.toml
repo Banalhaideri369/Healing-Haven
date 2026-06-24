@@ -41,3 +41,9 @@ id = "EOXG278iuqu8u1wwfvbqC"
 uri = "file://ban-al-haidari-dist.zip"
 type = "unspecified"
 title = "ban-al-haidari-dist.zip"
+
+[[outputs]]
+id = "Ey031a_3p3CxRa9tMNbhb"
+uri = "file://ban-al-haidari-deploy.zip"
+type = "unspecified"
+title = "Ban Al-Haidari — Netlify Deploy"
