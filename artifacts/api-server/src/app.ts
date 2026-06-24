@@ -26,9 +26,25 @@ app.use(
   }),
 );
 
+const rawCorsOrigin = process.env["CORS_ORIGIN"] ?? "";
+const allowedOrigins: string[] = rawCorsOrigin
+  ? rawCorsOrigin.split(",").map((o) => o.trim()).filter(Boolean)
+  : [
+      "https://ban-infinity369.com",
+      "https://www.ban-infinity369.com",
+      "https://healing-haven.netlify.app",
+    ];
+
 app.use(
   cors({
-    origin: process.env["CORS_ORIGIN"] ?? "*",
+    origin: (origin, callback) => {
+      // Allow server-to-server / curl (no Origin header)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Log rejections to help diagnose unexpected origins
+      logger.warn({ origin, allowedOrigins }, "CORS: origin not allowed");
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
     credentials: true,
   }),
 );
