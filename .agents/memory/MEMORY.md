@@ -1,1 +1,2 @@
 - [Firebase vs PostgreSQL split](firebase-postgres-split.md) — Firebase Auth only; all data (courses, bookings, profiles, users) in Neon PostgreSQL via Drizzle.
+- [GitHub push blocked](github-push-blocked.md) — git push/commit blocked in main agent; backup workflow (scripts/push-to-github.sh) is the only push path, but was failing as of 2026-06-24.

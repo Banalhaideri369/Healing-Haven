@@ -33,6 +33,7 @@ export const onlineCoursesTable = pgTable("online_courses", {
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
   image: text("image").notNull().default(""),
+  telegramLink: text("telegram_link").notNull().default(""),
   price: doublePrecision("price").notNull().default(0),
   status: text("status").notNull().default("available"),
   availability: jsonb("availability").notNull().default({}),

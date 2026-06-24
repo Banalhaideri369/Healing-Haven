@@ -94,12 +94,16 @@ router.post("/notify/booking", async (req, res) => {
   }
 
   // ── Web Push Notification ─────────────────────────────────────────────────────
+  const adminUrl = process.env["FRONTEND_URL"]
+    ? `${process.env["FRONTEND_URL"].replace(/\/$/, "")}/admin`
+    : "/admin";
+
   try {
     await sendPushToAll({
       title: "📅 New Booking!",
       body: `${userName} — ${courseName}`,
       tag: "new-booking",
-      url: "/admin",
+      url: adminUrl,
     });
     logger.info("Push notifications sent");
   } catch (err) {

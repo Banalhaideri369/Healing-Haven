@@ -132,7 +132,7 @@ router.post("/admin/courses/seed", requireAdmin, async (req, res) => {
 // ── Admin: create online course ───────────────────────────────────────────────
 router.post("/admin/courses/online", requireAdmin, async (req, res) => {
   const b = req.body as {
-    title?: string; description?: string; image?: string;
+    title?: string; description?: string; image?: string; telegramLink?: string;
     price?: number; status?: string; availability?: unknown;
   };
   if (!b.title?.trim()) { res.status(400).json({ error: "title required" }); return; }
@@ -143,6 +143,7 @@ router.post("/admin/courses/online", requireAdmin, async (req, res) => {
         title: b.title.trim(),
         description: b.description ?? "",
         image: b.image ?? "",
+        telegramLink: b.telegramLink ?? "",
         price: b.price ?? 0,
         status: b.status ?? "available",
         availability: (b.availability ?? {}) as Record<string, unknown>,
@@ -159,7 +160,7 @@ router.post("/admin/courses/online", requireAdmin, async (req, res) => {
 router.patch("/admin/courses/online/:id", requireAdmin, async (req, res) => {
   const b = req.body as {
     status?: string; availability?: unknown; price?: number;
-    title?: string; description?: string; image?: string;
+    title?: string; description?: string; image?: string; telegramLink?: string;
   };
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
   if (b.status !== undefined) updateData.status = b.status;
@@ -168,6 +169,7 @@ router.patch("/admin/courses/online/:id", requireAdmin, async (req, res) => {
   if (b.title !== undefined) updateData.title = b.title;
   if (b.description !== undefined) updateData.description = b.description;
   if (b.image !== undefined) updateData.image = b.image;
+  if (b.telegramLink !== undefined) updateData.telegramLink = b.telegramLink;
 
   try {
     const rows = await db

@@ -30,6 +30,7 @@ interface InitialOnline {
   title: string;
   description: string;
   image: string;
+  telegramLink: string;
   price: number;
 }
 
@@ -82,7 +83,9 @@ export function CourseFormModal({ mode, onClose, onSaved, editId, initialData }:
   const [imgMode, setImgMode] = useState<ImgMode>("url");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [telegramLink, setTelegramLink] = useState(initRecorded?.telegramLink ?? "");
+  const [telegramLink, setTelegramLink] = useState(
+    mode === "recorded" ? (initRecorded?.telegramLink ?? "") : (initOnline?.telegramLink ?? ""),
+  );
   const [price, setPrice] = useState<string>(initRecorded ? String(initRecorded.price || "") : "");
   const [discountEnabled, setDiscountEnabled] = useState(initRecorded?.discountEnabled ?? false);
   const [discountPercent, setDiscountPercent] = useState<string>(initRecorded ? String(initRecorded.discountPercent || "10") : "10");
@@ -138,7 +141,8 @@ export function CourseFormModal({ mode, onClose, onSaved, editId, initialData }:
       } else {
         const payload = {
           title: title.trim(), description: description.trim(),
-          image: image.trim(), price: parsedSessionPrice,
+          image: image.trim(), telegramLink: telegramLink.trim(),
+          price: parsedSessionPrice,
         };
         let result: ApiOnlineCourse;
         if (isEdit && editId) {
@@ -342,14 +346,26 @@ export function CourseFormModal({ mode, onClose, onSaved, editId, initialData }:
 
           {/* Online-only */}
           {mode === "online" && (
-            <div>
-              <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">{a.fieldSessionPrice}</label>
-              <input
-                type="number" min={0} step={0.01} value={sessionPrice} onChange={(e) => setSessionPrice(e.target.value)} placeholder="0.00"
-                className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
-              />
-              <p className="text-xs text-muted-foreground/50 mt-1.5">{a.availabilityNote}</p>
-            </div>
+            <>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">{a.fieldTelegramLink}</label>
+                <input
+                  type="url" value={telegramLink} onChange={(e) => setTelegramLink(e.target.value)} placeholder="https://t.me/..."
+                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
+                />
+                <p className="text-xs text-muted-foreground/50 mt-1.5">
+                  {isRTL ? "سيظهر هذا الرابط للمستخدم بعد إتمام الدفع" : "Shown to the user after successful payment"}
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-muted-foreground mb-2">{a.fieldSessionPrice}</label>
+                <input
+                  type="number" min={0} step={0.01} value={sessionPrice} onChange={(e) => setSessionPrice(e.target.value)} placeholder="0.00"
+                  className="w-full bg-black/20 border border-white/10 text-foreground text-sm px-4 py-3 focus:outline-none focus:border-primary/50 placeholder:text-muted-foreground/40 rounded-sm"
+                />
+                <p className="text-xs text-muted-foreground/50 mt-1.5">{a.availabilityNote}</p>
+              </div>
+            </>
           )}
 
           <div style={{ height: 4 }} />

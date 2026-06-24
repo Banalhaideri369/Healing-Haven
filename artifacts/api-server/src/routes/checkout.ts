@@ -1,10 +1,12 @@
 import { Router, type IRouter } from "express";
 import { logger } from "../lib/logger";
 import { getStripeClient } from "../lib/stripeClient";
+import { db, bookingsTable, onlineCoursesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const TELEGRAM_URL =
+const TELEGRAM_FALLBACK =
   process.env["TELEGRAM_WORKSHOP_URL"] ?? "https://t.me/+Luy1BC1WsokxNGVl";
 
 function getBaseUrl(req: Parameters<Parameters<IRouter["post"]>[1]>[0]): string {
@@ -90,9 +92,31 @@ router.get("/checkout/verify", async (req, res) => {
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     if (session.payment_status === "paid") {
+      // Try to resolve the Telegram link from the matching online-course booking
+      let telegramUrl = TELEGRAM_FALLBACK;
+      try {
+        const bookings = await db
+          .select()
+          .from(bookingsTable)
+          .where(eq(bookingsTable.paymentSessionId, session_id))
+          .limit(1);
+        const booking = bookings[0];
+        if (booking?.courseType === "online" && booking.courseId) {
+          const courses = await db
+            .select({ telegramLink: onlineCoursesTable.telegramLink })
+            .from(onlineCoursesTable)
+            .where(eq(onlineCoursesTable.id, booking.courseId))
+            .limit(1);
+          const link = courses[0]?.telegramLink;
+          if (link) telegramUrl = link;
+        }
+      } catch (lookupErr) {
+        logger.warn({ lookupErr }, "Could not resolve course telegram link — using fallback");
+      }
+
       res.json({
         success: true,
-        telegramUrl: TELEGRAM_URL,
+        telegramUrl,
         productName: session.metadata?.["productName"] ?? "",
       });
     } else {

@@ -32,6 +32,7 @@ export interface ApiOnlineCourse {
   title: string;
   description: string;
   image: string;
+  telegramLink: string;
   price: number;
   status: "available" | "unavailable";
   availability: Availability;
@@ -132,6 +133,7 @@ export async function apiCreateOnlineCourse(data: {
   title: string;
   description: string;
   image: string;
+  telegramLink?: string;
   price: number;
   status: string;
   availability: Availability;
@@ -151,6 +153,7 @@ export async function apiUpdateOnlineCourse(
     title: string;
     description: string;
     image: string;
+    telegramLink: string;
     price: number;
     status: string;
     availability: Availability;

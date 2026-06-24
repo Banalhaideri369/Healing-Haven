@@ -293,6 +293,7 @@ export function OnlineCoursesTab() {
             title: editingCourse.title,
             description: editingCourse.description ?? "",
             image: editingCourse.image ?? "",
+            telegramLink: editingCourse.telegramLink ?? "",
             price: editingCourse.price,
           }}
           onClose={() => setEditingCourse(null)}
