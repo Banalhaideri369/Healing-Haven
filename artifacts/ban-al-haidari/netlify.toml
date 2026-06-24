@@ -2,6 +2,7 @@
   base    = "artifacts/ban-al-haidari"
   command = "corepack enable && pnpm install && pnpm run build"
   publish = "dist/public"
+  ignore  = "exit 1"
 
 [functions]
   directory    = "netlify/functions"
