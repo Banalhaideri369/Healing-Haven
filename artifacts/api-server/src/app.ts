@@ -26,9 +26,25 @@ app.use(
   }),
 );
 
+// Explicit origin allowlist — add comma-separated origins to CORS_ORIGIN env var on Render.
+// Defaults to the production domain so credentials are never echoed to arbitrary origins.
+const allowedOrigins = (
+  process.env["CORS_ORIGIN"] ?? "https://ban-infinity369.com,https://www.ban-infinity369.com"
+)
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      // Allow server-to-server calls (no Origin header) and known origins
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(null, false);
+      }
+    },
     credentials: true,
   }),
 );
