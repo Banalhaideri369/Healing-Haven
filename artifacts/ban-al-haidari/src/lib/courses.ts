@@ -27,6 +27,7 @@ export interface OnlineCourse {
   title: string;
   description: string;
   image: string;
+  telegramLink: string;
   price: number;
   status: "available" | "unavailable";
   availability: Availability;

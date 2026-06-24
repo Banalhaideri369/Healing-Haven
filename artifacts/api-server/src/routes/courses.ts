@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, recordedCoursesTable, onlineCoursesTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { requireAdmin } from "../lib/adminAuth";
 
 const router = Router();
@@ -22,6 +22,30 @@ router.get("/courses/online", async (req, res) => {
     const rows = await db.select().from(onlineCoursesTable).orderBy(desc(onlineCoursesTable.createdAt));
     res.json(rows);
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Graceful fallback when telegram_link column is missing (pre-migration DB)
+    if (msg.includes("telegram_link") || msg.includes("column")) {
+      try {
+        const rows = await db
+          .select({
+            id: onlineCoursesTable.id,
+            title: onlineCoursesTable.title,
+            description: onlineCoursesTable.description,
+            image: onlineCoursesTable.image,
+            price: onlineCoursesTable.price,
+            status: onlineCoursesTable.status,
+            availability: onlineCoursesTable.availability,
+            createdAt: onlineCoursesTable.createdAt,
+            updatedAt: onlineCoursesTable.updatedAt,
+          })
+          .from(onlineCoursesTable)
+          .orderBy(desc(onlineCoursesTable.createdAt));
+        res.json(rows.map((r: typeof rows[number]) => ({ ...r, telegramLink: "" })));
+        return;
+      } catch (fallbackErr) {
+        req.log.error({ fallbackErr }, "GET /courses/online fallback");
+      }
+    }
     req.log.error({ err }, "GET /courses/online");
     res.status(500).json({ error: "Internal error" });
   }
@@ -34,6 +58,31 @@ router.get("/courses/online/:id", async (req, res) => {
     if (rows.length === 0) { res.status(404).json({ error: "Not found" }); return; }
     res.json(rows[0]);
   } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Graceful fallback when telegram_link column is missing (pre-migration DB)
+    if (msg.includes("telegram_link") || msg.includes("column")) {
+      try {
+        const rows = await db
+          .select({
+            id: onlineCoursesTable.id,
+            title: onlineCoursesTable.title,
+            description: onlineCoursesTable.description,
+            image: onlineCoursesTable.image,
+            price: onlineCoursesTable.price,
+            status: onlineCoursesTable.status,
+            availability: onlineCoursesTable.availability,
+            createdAt: onlineCoursesTable.createdAt,
+            updatedAt: onlineCoursesTable.updatedAt,
+          })
+          .from(onlineCoursesTable)
+          .where(eq(onlineCoursesTable.id, String(req.params.id)));
+        if (rows.length === 0) { res.status(404).json({ error: "Not found" }); return; }
+        res.json({ ...rows[0], telegramLink: "" });
+        return;
+      } catch (fallbackErr) {
+        req.log.error({ fallbackErr }, "GET /courses/online/:id fallback");
+      }
+    }
     req.log.error({ err }, "GET /courses/online/:id");
     res.status(500).json({ error: "Internal error" });
   }

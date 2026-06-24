@@ -1,12 +1,23 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { db, onlineCoursesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { sql, eq } from "drizzle-orm";
 
 const port = Number(process.env["PORT"]) || 5000;
 
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${process.env["PORT"]}"`);
+}
+
+// Ensure telegram_link columns exist (idempotent — safe to run on every boot)
+async function ensureTelegramLinkColumns() {
+  try {
+    await db.execute(sql`ALTER TABLE recorded_courses ADD COLUMN IF NOT EXISTS telegram_link TEXT NOT NULL DEFAULT ''`);
+    await db.execute(sql`ALTER TABLE online_courses ADD COLUMN IF NOT EXISTS telegram_link TEXT NOT NULL DEFAULT ''`);
+    logger.info("ensureTelegramLinkColumns: columns verified");
+  } catch (err) {
+    logger.warn({ err }, "ensureTelegramLinkColumns: skipped (non-fatal)");
+  }
 }
 
 // Strip legacy default slots injected before the fix (09:00, 10:00, 11:00, 14:00, 15:00)
@@ -48,5 +59,5 @@ app.listen(port, (err) => {
     process.exit(1);
   }
   logger.info({ port }, "Server listening");
-  void clearLegacyDefaultSlots();
+  void ensureTelegramLinkColumns().then(() => clearLegacyDefaultSlots());
 });
