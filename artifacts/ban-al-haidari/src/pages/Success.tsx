@@ -31,8 +31,8 @@ export default function Success() {
     fetch(`${apiOrigin}/api/checkout/verify?session_id=${encodeURIComponent(sessionId)}`)
       .then((r) => r.json())
       .then((data: VerifyResponse) => {
-        if (data.success && data.telegramUrl) {
-          setTelegramUrl(data.telegramUrl);
+        if (data.success) {
+          setTelegramUrl(data.telegramUrl ?? "");
           setProductName(data.productName ?? "");
           setState("success");
         } else {
@@ -115,21 +115,32 @@ export default function Success() {
               <p className="text-xs uppercase tracking-widest text-muted-foreground">
                 {isRTL ? "قناة الورشة على تيليجرام" : "Workshop Telegram Channel"}
               </p>
-              <p className="text-sm text-muted-foreground font-light leading-relaxed">
-                {isRTL
-                  ? "انضم إلى القناة الخاصة للوصول إلى جميع المحتويات والتسجيلات والملفات."
-                  : "Join the private channel to access all content, recordings, and files."}
-              </p>
-              <a
-                href={telegramUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-3 w-full py-4 bg-primary text-primary-foreground font-semibold text-sm uppercase tracking-widest hover:bg-primary/90 transition-colors"
-                data-testid="link-telegram"
-              >
-                <Send size={16} />
-                {isRTL ? "انضم الآن عبر تيليجرام" : "Join Now on Telegram"}
-              </a>
+
+              {telegramUrl ? (
+                <>
+                  <p className="text-sm text-muted-foreground font-light leading-relaxed">
+                    {isRTL
+                      ? "انضم إلى القناة الخاصة للوصول إلى جميع المحتويات والتسجيلات والملفات."
+                      : "Join the private channel to access all content, recordings, and files."}
+                  </p>
+                  <a
+                    href={telegramUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-3 w-full py-4 bg-primary text-primary-foreground font-semibold text-sm uppercase tracking-widest hover:bg-primary/90 transition-colors"
+                    data-testid="link-telegram"
+                  >
+                    <Send size={16} />
+                    {isRTL ? "انضم الآن عبر تيليجرام" : "Join Now on Telegram"}
+                  </a>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground font-light leading-relaxed italic">
+                  {isRTL
+                    ? "سيتواصل معك المدرب قريباً لمشاركة رابط المجموعة."
+                    : "Your instructor will contact you to share the course link."}
+                </p>
+              )}
             </div>
 
             <p className="text-xs text-muted-foreground/50 leading-relaxed">

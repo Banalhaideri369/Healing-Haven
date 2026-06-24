@@ -6,8 +6,6 @@ import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
-const TELEGRAM_FALLBACK =
-  process.env["TELEGRAM_WORKSHOP_URL"] ?? "https://t.me/+Luy1BC1WsokxNGVl";
 
 function getBaseUrl(req: Parameters<Parameters<IRouter["post"]>[1]>[0]): string {
   if (process.env["FRONTEND_URL"]) {
@@ -92,8 +90,10 @@ router.get("/checkout/verify", async (req, res) => {
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
     if (session.payment_status === "paid") {
-      // Try to resolve the Telegram link from the matching online-course booking
-      let telegramUrl = TELEGRAM_FALLBACK;
+      // Try to resolve the Telegram link from the matching online-course booking.
+      // Returns empty string when no course-specific link is set so the frontend
+      // can show a "your instructor will contact you" message instead.
+      let telegramUrl = "";
       try {
         const bookings = await db
           .select()
@@ -111,7 +111,7 @@ router.get("/checkout/verify", async (req, res) => {
           if (link) telegramUrl = link;
         }
       } catch (lookupErr) {
-        logger.warn({ lookupErr }, "Could not resolve course telegram link — using fallback");
+        logger.warn({ lookupErr }, "Could not resolve course telegram link");
       }
 
       res.json({
