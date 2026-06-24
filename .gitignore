@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# GitHub backup runtime state (regenerated on each push; not version-controlled)
+.github-backup-status
