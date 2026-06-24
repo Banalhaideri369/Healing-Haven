@@ -2,7 +2,9 @@
 set -e
 
 STATUS_FILE="$(git rev-parse --show-toplevel)/.github-backup-status"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+REPO_URL="https://github.com/Banalhaideri369/Healing-Haven"
 
 write_status() {
   local result="$1"
@@ -13,7 +15,9 @@ write_status() {
 if [ -z "$GITHUB_TOKEN" ]; then
   echo "Error: GITHUB_TOKEN secret is not set." >&2
   echo "Add it in the Replit Secrets tab (Settings > Secrets) as a classic PAT with 'repo' scope." >&2
-  write_status "FAILED" "GITHUB_TOKEN secret is not set"
+  REASON="GITHUB_TOKEN secret is not set"
+  write_status "FAILED" "$REASON"
+  bash "$SCRIPT_DIR/notify-backup-failure.sh" "$TIMESTAMP" "$REASON" "$REPO_URL" || true
   exit 1
 fi
 
@@ -31,7 +35,9 @@ if GIT_TERMINAL_PROMPT=0 git push origin main 2>&1; then
   write_status "OK" "https://github.com/Banalhaideri369/Healing-Haven"
 else
   PUSH_EXIT=$?
-  write_status "FAILED" "git push exited with code $PUSH_EXIT — check GITHUB_TOKEN or repo access"
+  REASON="git push exited with code $PUSH_EXIT — check GITHUB_TOKEN or repo access"
+  write_status "FAILED" "$REASON"
   echo "ERROR: Push failed (exit $PUSH_EXIT). Check GITHUB_TOKEN or repo permissions." >&2
+  bash "$SCRIPT_DIR/notify-backup-failure.sh" "$TIMESTAMP" "$REASON" "$REPO_URL" || true
   exit $PUSH_EXIT
 fi
