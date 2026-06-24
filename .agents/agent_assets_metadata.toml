@@ -35,3 +35,9 @@ id = "du1tCUaIPr2zvJd0nV-h6"
 uri = "file://ban-al-haidari-env-secrets.zip"
 type = "unspecified"
 title = "Ban Al-Haidari — Environment Secrets"
+
+[[outputs]]
+id = "EOXG278iuqu8u1wwfvbqC"
+uri = "file://ban-al-haidari-dist.zip"
+type = "unspecified"
+title = "ban-al-haidari-dist.zip — ملفات Netlify الجاهزة"
