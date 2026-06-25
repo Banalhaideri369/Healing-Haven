@@ -22,8 +22,7 @@ export interface UserProfile {
   updatedAt: string | null;
 }
 
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
-const BASE = `${API_ORIGIN}/api`;
+const BASE = "https://healing-haven.onrender.com/api";
 
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await auth?.currentUser?.getIdToken().catch(() => null);

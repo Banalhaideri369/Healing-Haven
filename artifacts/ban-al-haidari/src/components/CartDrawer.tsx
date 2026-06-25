@@ -16,8 +16,7 @@ export function CartDrawer() {
     if (items.length === 0) return;
     setLoading(true);
     try {
-      const apiOrigin = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
-      const res = await fetch(`${apiOrigin}/api/checkout/session`, {
+      const res = await fetch(`https://healing-haven.onrender.com/api/checkout/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
