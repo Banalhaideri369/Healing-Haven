@@ -1,0 +1,13 @@
+[build]
+  base    = "artifacts/ban-al-haidari"
+  command = "corepack enable && pnpm install && pnpm run build"
+  publish = "dist/public"
+  ignore  = "exit 1"
+
+[build.environment]
+  VITE_API_BASE_URL = "https://healing-haven.onrender.com"
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
