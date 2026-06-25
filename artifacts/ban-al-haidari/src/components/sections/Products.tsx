@@ -23,12 +23,22 @@ export function Products() {
 
   useEffect(() => {
     Promise.all([
-      apiGetRecordedCourses().catch(() => [] as ApiRecordedCourse[]),
-      apiGetOnlineCourses().catch(() => [] as ApiOnlineCourse[]),
+      apiGetRecordedCourses().catch((err) => {
+        console.error("[Products] recorded courses error:", err);
+        return [] as ApiRecordedCourse[];
+      }),
+      apiGetOnlineCourses().catch((err) => {
+        console.error("[Products] online courses error:", err);
+        return [] as ApiOnlineCourse[];
+      }),
     ])
       .then(([rec, onl]) => {
+        console.log("[Products] recorded courses:", rec.length, rec);
+        console.log("[Products] online courses raw:", onl.length, onl);
+        const available = onl.filter((c) => c.status === "available");
+        console.log("[Products] online courses after filter:", available.length, available);
         setRecordedCourses(rec);
-        setOnlineCourses(onl.filter((c) => c.status === "available"));
+        setOnlineCourses(available);
       })
       .finally(() => setLoading(false));
   }, []);
