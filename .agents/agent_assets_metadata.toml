@@ -47,3 +47,9 @@ id = "Ey031a_3p3CxRa9tMNbhb"
 uri = "file://ban-al-haidari-deploy.zip"
 type = "unspecified"
 title = "Ban Al-Haidari — Debug Build (direct fetch + counter)"
+
+[[outputs]]
+id = "bl5CTXNXmRbFQw-DVqS0O"
+uri = "file://.local/handover/client-handover.tar.gz"
+type = "unspecified"
+title = "وثيقة تسليم المشروع — Ban Al-Haidari"
