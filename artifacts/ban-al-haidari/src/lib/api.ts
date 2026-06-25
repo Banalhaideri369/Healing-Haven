@@ -1,8 +1,7 @@
 import { auth } from "./firebase";
 import type { Availability } from "./courses";
 
-const API_ORIGIN = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
-const BASE = `${API_ORIGIN}/api`;
+const BASE = "https://healing-haven.onrender.com/api";
 
 async function adminHeaders(): Promise<Record<string, string>> {
   const token = await auth?.currentUser?.getIdToken().catch(() => null);

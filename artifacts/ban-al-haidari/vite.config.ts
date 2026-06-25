@@ -47,13 +47,6 @@ export default defineConfig({
     fs: {
       strict: true,
     },
-    proxy: {
-      "/api": {
-        target: "https://healing-haven.onrender.com",
-        changeOrigin: true,
-        secure: true,
-      },
-    },
   },
   preview: {
     port,
