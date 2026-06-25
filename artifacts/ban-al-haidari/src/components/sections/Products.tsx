@@ -19,7 +19,6 @@ export function Products() {
 
   const [recordedCourses, setRecordedCourses] = useState<ApiRecordedCourse[]>([]);
   const [onlineCourses, setOnlineCourses] = useState<ApiOnlineCourse[]>([]);
-  const [onlineFetchCount, setOnlineFetchCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,11 +30,8 @@ export function Products() {
     // Online courses — direct fetch, no filter
     fetch("https://healing-haven.onrender.com/api/courses/online")
       .then((r) => r.json())
-      .then((data: ApiOnlineCourse[]) => {
-        setOnlineFetchCount(data.length);
-        setOnlineCourses(data);
-      })
-      .catch(() => setOnlineFetchCount(0))
+      .then((data: ApiOnlineCourse[]) => setOnlineCourses(data))
+      .catch(() => setOnlineCourses([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -60,13 +56,6 @@ export function Products() {
             {t.products.label}
           </span>
         </motion.div>
-
-        {/* Debug banner — shows live fetch result */}
-        {onlineFetchCount !== null && (
-          <div className="text-center mb-4 py-2 px-4 bg-primary/10 border border-primary/30 text-primary text-sm font-mono">
-            ✓ Fetched {onlineFetchCount} online courses from API
-          </div>
-        )}
 
         {loading && (
           <div className="flex justify-center py-20">

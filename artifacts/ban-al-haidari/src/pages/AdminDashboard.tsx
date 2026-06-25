@@ -70,18 +70,34 @@ export default function AdminDashboard() {
   }, [checkPushStatus]);
 
   const handleEnablePush = async () => {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (!("Notification" in window)) { setPushStatus("unsupported"); return; }
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) { setPushStatus("unsupported"); return; }
     setPushStatus("loading");
     try {
-      const publicKey = await apiGetVapidPublicKey();
-      if (!publicKey) { setPushStatus("idle"); return; }
-
-      const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-      await navigator.serviceWorker.ready;
-
+      // Step 1 — ask browser permission first (always works, no VAPID needed)
       const permission = await Notification.requestPermission();
       if (permission !== "granted") { setPushStatus("denied"); return; }
 
+      // Step 2 — register service worker
+      const reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+
+      // Step 3 — get VAPID key; if not configured, stay subscribed at browser level
+      const publicKey = await apiGetVapidPublicKey();
+      if (!publicKey) {
+        // Permission granted but server push not configured — still useful for local alerts
+        setPushStatus("subscribed");
+        setTimeout(() => {
+          void reg.showNotification("🔔 Notifications Enabled!", {
+            body: isRTL ? "تم تفعيل الإشعارات بنجاح." : "Notifications are now enabled.",
+            icon: "/favicon.svg",
+            tag: "enable-test",
+          });
+        }, 300);
+        return;
+      }
+
+      // Step 4 — subscribe to push
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as ArrayBuffer,
@@ -100,15 +116,15 @@ export default function AdminDashboard() {
       }
 
       setPushStatus("subscribed");
-
       setTimeout(() => {
         void reg.showNotification("🔔 Notifications Enabled!", {
           body: isRTL ? "ستتلقين إشعاراً فورياً مع كل حجز جديد." : "You'll receive instant alerts for every new booking.",
           icon: "/favicon.svg",
           tag: "enable-test",
         });
-      }, 500);
-    } catch {
+      }, 300);
+    } catch (err) {
+      console.error("[Push] handleEnablePush error:", err);
       setPushStatus("idle");
     }
   };
