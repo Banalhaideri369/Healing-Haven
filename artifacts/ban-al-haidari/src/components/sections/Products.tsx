@@ -19,27 +19,23 @@ export function Products() {
 
   const [recordedCourses, setRecordedCourses] = useState<ApiRecordedCourse[]>([]);
   const [onlineCourses, setOnlineCourses] = useState<ApiOnlineCourse[]>([]);
+  const [onlineFetchCount, setOnlineFetchCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      apiGetRecordedCourses().catch((err) => {
-        console.error("[Products] recorded courses error:", err);
-        return [] as ApiRecordedCourse[];
-      }),
-      apiGetOnlineCourses().catch((err) => {
-        console.error("[Products] online courses error:", err);
-        return [] as ApiOnlineCourse[];
-      }),
-    ])
-      .then(([rec, onl]) => {
-        console.log("[Products] recorded courses:", rec.length, rec);
-        console.log("[Products] online courses raw:", onl.length, onl);
-        const available = onl.filter((c) => c.status === "available");
-        console.log("[Products] online courses after filter:", available.length, available);
-        setRecordedCourses(rec);
-        setOnlineCourses(available);
+    // Recorded courses
+    apiGetRecordedCourses()
+      .then(setRecordedCourses)
+      .catch(() => setRecordedCourses([]));
+
+    // Online courses — direct fetch, no filter
+    fetch("https://healing-haven.onrender.com/api/courses/online")
+      .then((r) => r.json())
+      .then((data: ApiOnlineCourse[]) => {
+        setOnlineFetchCount(data.length);
+        setOnlineCourses(data);
       })
+      .catch(() => setOnlineFetchCount(0))
       .finally(() => setLoading(false));
   }, []);
 
@@ -64,6 +60,13 @@ export function Products() {
             {t.products.label}
           </span>
         </motion.div>
+
+        {/* Debug banner — shows live fetch result */}
+        {onlineFetchCount !== null && (
+          <div className="text-center mb-4 py-2 px-4 bg-primary/10 border border-primary/30 text-primary text-sm font-mono">
+            ✓ Fetched {onlineFetchCount} online courses from API
+          </div>
+        )}
 
         {loading && (
           <div className="flex justify-center py-20">
