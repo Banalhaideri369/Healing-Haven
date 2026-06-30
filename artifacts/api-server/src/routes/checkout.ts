@@ -70,7 +70,7 @@ router.post("/checkout/session", async (req, res) => {
       success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/#products`,
     });
-    res.json({ url: session.url });
+    res.json({ url: session.url, sessionId: session.id });
   } catch (err) {
     logger.error({ err }, "Stripe checkout session creation failed");
     res.status(500).json({ error: "Payment service unavailable. Please try again later." });

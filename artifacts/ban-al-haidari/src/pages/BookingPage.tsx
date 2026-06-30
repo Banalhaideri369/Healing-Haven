@@ -300,10 +300,8 @@ export default function BookingPage() {
         }),
       });
       if (!res.ok) throw new Error("checkout-failed");
-      const data = (await res.json()) as { url?: string };
+      const data = (await res.json()) as { url?: string; sessionId?: string };
       if (!data.url) throw new Error("checkout-failed");
-      const sessionId =
-        new URL(data.url).searchParams.get("session_id") ?? data.url;
 
       await apiCreateBooking({
         courseId, courseTitle: course?.title ?? "",
@@ -311,10 +309,10 @@ export default function BookingPage() {
         userName, userEmail, userWhatsapp, issueDescription,
         selectedDate, selectedTime,
         paymentStatus: "pending",
-        paymentSessionId: sessionId,
+        paymentSessionId: data.sessionId ?? null,
       });
 
-      fetch(`${apiOrigin}/api/notify/booking`, {
+      fetch(`https://healing-haven.onrender.com/api/notify/booking`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName, userEmail, userWhatsapp, issueDescription, courseName: course?.title ?? "", courseType: "online", selectedDate, selectedTime }),
