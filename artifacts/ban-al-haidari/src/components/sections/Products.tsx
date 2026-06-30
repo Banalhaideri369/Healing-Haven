@@ -27,10 +27,9 @@ export function Products() {
       .then(setRecordedCourses)
       .catch(() => setRecordedCourses([]));
 
-    // Online courses — direct fetch, no filter
-    fetch("https://healing-haven.onrender.com/api/courses/online")
-      .then((r) => r.json())
-      .then((data: ApiOnlineCourse[]) => setOnlineCourses(data))
+    // Online courses — only show available ones on the public site
+    apiGetOnlineCourses()
+      .then((data) => setOnlineCourses(data.filter((c) => c.status === "available")))
       .catch(() => setOnlineCourses([]))
       .finally(() => setLoading(false));
   }, []);
