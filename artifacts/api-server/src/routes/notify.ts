@@ -13,6 +13,22 @@ interface BookingNotifyBody {
   courseType?: string;
   selectedDate?: string;
   selectedTime?: string;
+  totalPrice?: string;
+}
+
+async function sendWhatsAppNotification(message: string): Promise<void> {
+  const phone = process.env["CALLMEBOT_PHONE"];
+  const apikey = process.env["CALLMEBOT_APIKEY"];
+  if (!phone || !apikey) {
+    logger.info("WhatsApp not configured — skipping (set CALLMEBOT_PHONE + CALLMEBOT_APIKEY to enable)");
+    return;
+  }
+  const encoded = encodeURIComponent(message);
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&apikey=${apikey}&text=${encoded}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`CallMeBot responded with HTTP ${res.status}`);
+  }
 }
 
 const ADMIN_EMAIL = process.env["ADMIN_EMAIL"] ?? "ban.alhaideri369@gmail.com";
@@ -30,6 +46,7 @@ router.post("/notify/booking", async (req, res) => {
     courseType = "—",
     selectedDate = "—",
     selectedTime = "—",
+    totalPrice = "—",
   } = body;
 
   logger.info(
@@ -108,6 +125,16 @@ router.post("/notify/booking", async (req, res) => {
     logger.info("Push notifications sent");
   } catch (err) {
     logger.warn({ err }, "Failed to send push notifications");
+  }
+
+  // ── WhatsApp via CallMeBot ────────────────────────────────────────────────────
+  try {
+    const message =
+      `🔔 حجز جديد عبر الموقع! الاسم: ${userName}, الإيميل: ${userEmail}, واتساب العميل: ${userWhatsapp}, الكورس: ${courseName}, التاريخ: ${selectedDate}, الوقت: ${selectedTime}, الإجمالي: ${totalPrice}`;
+    await sendWhatsAppNotification(message);
+    logger.info("WhatsApp notification sent via CallMeBot");
+  } catch (err) {
+    logger.warn({ err }, "Failed to send WhatsApp notification");
   }
 
   res.json({ success: true });

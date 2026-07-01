@@ -315,7 +315,7 @@ export default function BookingPage() {
       fetch(`https://healing-haven.onrender.com/api/notify/booking`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userName, userEmail, userWhatsapp, issueDescription, courseName: course?.title ?? "", courseType: "online", selectedDate, selectedTime }),
+        body: JSON.stringify({ userName, userEmail, userWhatsapp, issueDescription, courseName: course?.title ?? "", courseType: "online", selectedDate, selectedTime, totalPrice: `$${course?.price?.toFixed(2) ?? "—"}` }),
       }).catch(() => {});
 
       window.location.href = data.url;

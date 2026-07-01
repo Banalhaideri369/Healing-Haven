@@ -78,6 +78,8 @@ VAPID_PUBLIC_KEY = "BPdAI9LzLX5Q0UxcigZ-2ORR15435o5fxFnZ4NSnGwIuBGJYbdj_wUWtQ92u
 VAPID_PRIVATE_KEY = "-kd5LsjPY1h8jxLFqMi2FcVBkQ7_lQBbBgLCMZdPHV0"
 VAPID_EMAIL = "mailto:admin@ban-al-haidari.com"
 FRONTEND_URL = "https://healing-haven--malkawigamer25.replit.app/"
+CALLMEBOT_PHONE = "61405356021"
+CALLMEBOT_APIKEY = "8248367"
 
 [nix]
 channel = "stable-25_05"
