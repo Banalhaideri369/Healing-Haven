@@ -53,3 +53,9 @@ id = "bl5CTXNXmRbFQw-DVqS0O"
 uri = "file://.local/handover/client-handover.tar.gz"
 type = "unspecified"
 title = "وثيقة تسليم نهائية — Ban Al-Haidari"
+
+[[outputs]]
+id = "b0vu2HMnk4R5DusGzo6kd"
+uri = "file://.local/handover/client-handover.zip"
+type = "unspecified"
+title = "وثيقة تسليم المشروع — Ban Al-Haidari Energy Healing (يوليو 2026)"
