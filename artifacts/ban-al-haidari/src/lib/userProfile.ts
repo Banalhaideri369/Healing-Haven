@@ -3,6 +3,7 @@
 // Calls /api/profile endpoints (auth via Firebase ID token).
 
 import { auth } from "./firebase";
+import { API_BASE } from "./apiBase";
 
 export interface ActivityItem {
   id: string;
@@ -22,8 +23,6 @@ export interface UserProfile {
   updatedAt: string | null;
 }
 
-const BASE = "https://healing-haven.onrender.com/api";
-
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await auth?.currentUser?.getIdToken().catch(() => null);
   return {
@@ -36,7 +35,7 @@ export async function getUserProfile(_uid: string): Promise<UserProfile | null> 
   try {
     const headers = await authHeaders();
     if (!headers.Authorization) return null;
-    const res = await fetch(`${BASE}/profile`, { headers });
+    const res = await fetch(`${API_BASE}/profile`, { headers });
     if (res.status === 404) return null;
     if (!res.ok) return null;
     return res.json() as Promise<UserProfile>;
@@ -51,7 +50,7 @@ export async function upsertUserProfile(
 ): Promise<void> {
   const headers = await authHeaders();
   if (!headers.Authorization) throw new Error("Not authenticated");
-  const res = await fetch(`${BASE}/profile`, {
+  const res = await fetch(`${API_BASE}/profile`, {
     method: "PUT",
     headers,
     body: JSON.stringify(data),
@@ -63,7 +62,7 @@ export async function addActivity(_uid: string, item: ActivityItem): Promise<voi
   try {
     const headers = await authHeaders();
     if (!headers.Authorization) return;
-    await fetch(`${BASE}/profile/activity`, {
+    await fetch(`${API_BASE}/profile/activity`, {
       method: "POST",
       headers,
       body: JSON.stringify(item),

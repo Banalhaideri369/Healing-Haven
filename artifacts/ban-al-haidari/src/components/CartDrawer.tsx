@@ -4,6 +4,7 @@ import { X, ShoppingCart, Trash2, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { API_BASE } from "@/lib/apiBase";
 
 export function CartDrawer() {
   const { items, remove, clear, isOpen, closeCart } = useCart();
@@ -16,7 +17,7 @@ export function CartDrawer() {
     if (items.length === 0) return;
     setLoading(true);
     try {
-      const res = await fetch(`https://healing-haven.onrender.com/api/checkout/session`, {
+      const res = await fetch(`${API_BASE}/checkout/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

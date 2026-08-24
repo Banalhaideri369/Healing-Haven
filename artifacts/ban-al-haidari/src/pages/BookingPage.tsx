@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import PhoneInput from "react-phone-number-input";
 import type { Value as PhoneValue } from "react-phone-number-input";
-import { apiGetOnlineCourse, apiCreateBooking, type ApiOnlineCourse } from "@/lib/api";
+import { apiGetOnlineCourse, apiCreateBooking, type ApiOnlineCourse, API_BASE } from "@/lib/api";
 import { type DayKey } from "@/lib/courses";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -289,7 +289,7 @@ export default function BookingPage() {
     setPaying(true);
     setError("");
     try {
-      const res = await fetch(`https://healing-haven.onrender.com/api/checkout/session`, {
+      const res = await fetch(`${API_BASE}/checkout/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -312,7 +312,7 @@ export default function BookingPage() {
         paymentSessionId: data.sessionId ?? null,
       });
 
-      fetch(`https://healing-haven.onrender.com/api/notify/booking`, {
+      fetch(`${API_BASE}/notify/booking`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName, userEmail, userWhatsapp, issueDescription, courseName: course?.title ?? "", courseType: "online", selectedDate, selectedTime, totalPrice: `$${course?.price?.toFixed(2) ?? "—"}` }),

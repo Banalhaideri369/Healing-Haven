@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { CheckCircle2, Send, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { API_BASE } from "@/lib/apiBase";
 
 interface VerifyResponse {
   success: boolean;
@@ -27,7 +28,7 @@ export default function Success() {
       return;
     }
 
-    fetch(`https://healing-haven.onrender.com/api/checkout/verify?session_id=${encodeURIComponent(sessionId)}`)
+    fetch(`${API_BASE}/checkout/verify?session_id=${encodeURIComponent(sessionId)}`)
       .then((r) => r.json())
       .then((data: VerifyResponse) => {
         if (data.success) {

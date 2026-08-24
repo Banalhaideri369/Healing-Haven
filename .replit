@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "bash"]
+modules = ["nodejs-24", "python-3.11", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -24,10 +24,6 @@ args = "GitHub Backup Status"
 task = "workflow.run"
 args = "GitHub Scheduled Backup"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Start application"
-
 [[workflows.workflow]]
 name = "GitHub Backup Status"
 author = "agent"
@@ -49,18 +45,6 @@ args = "bash scripts/scheduled-backup.sh"
 
 [workflows.workflow.metadata]
 outputType = "console"
-
-[[workflows.workflow]]
-name = "Start application"
-author = "agent"
-
-[workflows.workflow.metadata]
-outputType = "webview"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "PORT=20880 BASE_PATH=/ pnpm --filter @workspace/ban-al-haidari run dev"
-waitForPort = 20880
 
 [agent]
 stack = "PNPM_WORKSPACE"

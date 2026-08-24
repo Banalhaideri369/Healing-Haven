@@ -1,7 +1,9 @@
 import { auth } from "./firebase";
 import type { Availability } from "./courses";
+import { API_BASE } from "./apiBase";
 
-const BASE = "https://healing-haven.onrender.com/api";
+export { API_BASE };
+const BASE = API_BASE;
 
 async function adminHeaders(): Promise<Record<string, string>> {
   const token = await auth?.currentUser?.getIdToken().catch(() => null);
@@ -58,7 +60,7 @@ export interface ApiBooking {
 // ─── Recorded Courses ─────────────────────────────────────────────────────────
 
 export async function apiGetRecordedCourses(): Promise<ApiRecordedCourse[]> {
-  const res = await fetch(`${BASE}/courses/recorded`);
+  const res = await fetch(`${API_BASE}/courses/recorded`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json() as Promise<ApiRecordedCourse[]>;
 }
@@ -72,7 +74,7 @@ export async function apiCreateRecordedCourse(data: {
   discountEnabled: boolean;
   discountPercent: number;
 }): Promise<ApiRecordedCourse> {
-  const res = await fetch(`${BASE}/admin/courses/recorded`, {
+  const res = await fetch(`${API_BASE}/admin/courses/recorded`, {
     method: "POST",
     headers: await adminHeaders(),
     body: JSON.stringify(data),
@@ -86,7 +88,7 @@ export async function apiUpdateRecordedCourse(id: string, data: Partial<{
   telegramLink: string; price: number;
   discountEnabled: boolean; discountPercent: number;
 }>): Promise<ApiRecordedCourse> {
-  const res = await fetch(`${BASE}/admin/courses/recorded/${id}`, {
+  const res = await fetch(`${API_BASE}/admin/courses/recorded/${id}`, {
     method: "PATCH",
     headers: await adminHeaders(),
     body: JSON.stringify(data),

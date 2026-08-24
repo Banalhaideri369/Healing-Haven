@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ShoppingBag, Calendar, Loader2, Send, Tag, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { apiGetRecordedCourses, apiGetOnlineCourses, type ApiRecordedCourse, type ApiOnlineCourse } from "@/lib/api";
+import { apiGetRecordedCourses, apiGetOnlineCourses, type ApiRecordedCourse, type ApiOnlineCourse, API_BASE } from "@/lib/api";
 import { finalPrice } from "@/lib/courses";
 import { useCart } from "@/contexts/CartContext";
 import { useLocation } from "wouter";
@@ -172,7 +172,7 @@ function RecordedCourseCard({
   const handleBuyNow = async () => {
     try {
       const fp = finalPrice(course);
-      const res = await fetch(`https://healing-haven.onrender.com/api/checkout/session`, {
+      const res = await fetch(`${API_BASE}/checkout/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
