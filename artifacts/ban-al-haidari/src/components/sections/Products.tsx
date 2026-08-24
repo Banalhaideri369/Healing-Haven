@@ -6,7 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiGetRecordedCourses, apiGetOnlineCourses, type ApiRecordedCourse, type ApiOnlineCourse, API_BASE } from "@/lib/api";
 import { finalPrice } from "@/lib/courses";
 import { useCart } from "@/contexts/CartContext";
-import { CALENDLY_BOOKING_URL } from "@/lib/calendly";
+import { startBookingCheckout } from "@/lib/bookingCheckout";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
@@ -103,7 +103,10 @@ export function Products() {
 
         {/* ── Online Courses ── */}
         {!loading && onlineCourses.length > 0 && (
-          <div className={recordedCourses.length > 0 ? "mt-20" : ""}>
+          <div
+            id="online-sessions"
+            className={`${recordedCourses.length > 0 ? "mt-20 " : ""}scroll-mt-28`}
+          >
             <div className="flex items-center gap-4 mb-10">
               <span className="block h-[1px] flex-1 bg-primary/20" />
               <span className="text-[11px] uppercase tracking-[0.22em] text-primary/60">
@@ -268,6 +271,7 @@ function OnlineCourseCard({
   isRTL: boolean;
 }) {
   const { add, openCart } = useCart();
+  const [booking, setBooking] = useState(false);
 
   const handleAddToCart = () => {
     add({
@@ -284,6 +288,16 @@ function OnlineCourseCard({
         onClick: openCart,
       },
     });
+  };
+
+  const handleBooking = async () => {
+    setBooking(true);
+    try {
+      await startBookingCheckout(course);
+    } catch {
+      toast.error(isRTL ? "حدث خطأ في بوابة الدفع، يرجى المحاولة مجدداً." : "Payment gateway error. Please try again.");
+      setBooking(false);
+    }
   };
 
   return (
@@ -338,14 +352,16 @@ function OnlineCourseCard({
             <ShoppingCart size={13} />
             {isRTL ? "أضف للسلة" : "Add to Cart"}
           </button>
-          <a
-            href={CALENDLY_BOOKING_URL}
+          <button
+            type="button"
+            onClick={() => void handleBooking()}
+            disabled={booking}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 border border-secondary text-secondary text-xs font-semibold uppercase tracking-widest hover:bg-secondary hover:text-white active:scale-95 transition-all duration-200"
-            data-testid={`link-calendly-book-${course.id}`}
+            data-testid={`button-stripe-book-${course.id}`}
           >
-            <Calendar size={13} />
-            {isRTL ? "احجز الآن" : "Book Now"}
-          </a>
+            {booking ? <Loader2 size={13} className="animate-spin" /> : <Calendar size={13} />}
+            {booking ? (isRTL ? "جاري التحويل..." : "Redirecting...") : (isRTL ? "احجز الآن" : "Book Now")}
+          </button>
         </div>
       </div>
     </div>

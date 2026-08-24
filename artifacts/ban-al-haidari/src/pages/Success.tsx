@@ -4,11 +4,14 @@ import { motion } from "framer-motion";
 import { CheckCircle2, Send, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { API_BASE } from "@/lib/apiBase";
+import { CALENDLY_BOOKING_URL } from "@/lib/calendly";
+import { InlineWidget } from "react-calendly";
 
 interface VerifyResponse {
   success: boolean;
   telegramUrl?: string;
   productName?: string;
+  requiresScheduling?: boolean;
   error?: string;
 }
 
@@ -18,6 +21,7 @@ export default function Success() {
   const [state, setState] = useState<"loading" | "success" | "error">("loading");
   const [telegramUrl, setTelegramUrl] = useState("");
   const [productName, setProductName] = useState("");
+  const [requiresScheduling, setRequiresScheduling] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -34,6 +38,7 @@ export default function Success() {
         if (data.success) {
           setTelegramUrl(data.telegramUrl ?? "");
           setProductName(data.productName ?? "");
+          setRequiresScheduling(data.requiresScheduling === true);
           setState("success");
         } else {
           setState("error");
@@ -54,7 +59,7 @@ export default function Success() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="relative max-w-lg w-full bg-[#0f0a12] border border-primary/20 p-10 md:p-14 text-center shadow-[0_0_80px_rgba(212,175,55,0.08)]"
+        className="relative max-w-4xl w-full bg-[#0f0a12] border border-primary/20 p-6 md:p-10 text-center shadow-[0_0_80px_rgba(212,175,55,0.08)]"
       >
         {/* Top gold line */}
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/70 to-transparent" />
@@ -110,8 +115,29 @@ export default function Success() {
               )}
             </div>
 
-            {/* Telegram link */}
-            <div className="bg-primary/5 border border-primary/20 p-6 space-y-4">
+            {requiresScheduling && (
+              <div className="bg-secondary/10 border border-secondary/30 p-5 md:p-6 text-start">
+                <div className="text-center mb-5">
+                  <h2 className="font-serif text-2xl md:text-3xl text-foreground mb-2">
+                    {isRTL ? "اختاري موعد جلستك" : "Choose your appointment time"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground font-light leading-relaxed">
+                    {isRTL
+                      ? "تم تأكيد الدفع. اختاري الموعد المناسب لكِ من التقويم أدناه."
+                      : "Your payment is confirmed. Choose a time that works for you below."}
+                  </p>
+                </div>
+                <div className="w-full overflow-hidden bg-background/40 border border-white/10">
+                  <InlineWidget
+                    url={CALENDLY_BOOKING_URL}
+                    styles={{ height: "700px", minWidth: "320px" }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Telegram link for recorded purchases */}
+            {!requiresScheduling && <div className="bg-primary/5 border border-primary/20 p-6 space-y-4">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">
                 {isRTL ? "قناة الورشة على تيليجرام" : "Workshop Telegram Channel"}
               </p>
@@ -141,7 +167,7 @@ export default function Success() {
                     : "Your instructor will contact you to share the course link."}
                 </p>
               )}
-            </div>
+            </div>}
 
             <p className="text-xs text-muted-foreground/50 leading-relaxed">
               {isRTL

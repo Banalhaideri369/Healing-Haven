@@ -6,7 +6,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { logOut } from "@/lib/auth";
 import { AuthModal } from "./AuthModal";
 import { useLocation } from "wouter";
-import { CALENDLY_BOOKING_URL } from "@/lib/calendly";
 
 export function Header() {
   const [scrolled, setScrolled] = useState(false);
@@ -222,10 +221,10 @@ export function Header() {
               {/* CTA button */}
               <div className="px-6 pb-8 pt-4 border-t border-white/6">
                 <a
-                  href={CALENDLY_BOOKING_URL}
+                  href="#online-sessions"
                   onClick={() => setDrawerOpen(false)}
                   className="block w-full text-center py-3.5 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-300 uppercase tracking-[0.2em] text-sm font-semibold rounded-sm"
-                  data-testid="link-calendly-book-header"
+                  data-testid="link-header-book"
                 >
                   {t.nav.book}
                 </a>

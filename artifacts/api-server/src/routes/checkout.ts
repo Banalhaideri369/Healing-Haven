@@ -21,32 +21,60 @@ interface CheckoutItem {
   price: number;
   image?: string;
   description?: string;
+  requiresScheduling?: boolean;
 }
 
 router.post("/checkout/session", async (req, res) => {
   const body = req.body as {
     items?: CheckoutItem[];
+    courseId?: string;
+    courseType?: "online" | "recorded";
     title?: string;
     price?: number;
     image?: string;
     description?: string;
+    requiresScheduling?: boolean;
   };
 
-  // Resolve items array — either multi-item cart or single product
-  // Coerce price to number — DB/frontend may send it as a string
-  let items: CheckoutItem[];
-  if (Array.isArray(body.items) && body.items.length > 0) {
-    items = body.items.map((i) => ({ ...i, price: Number(i.price) }));
-  } else if (body.title && Number(body.price) > 0) {
-    items = [{ title: body.title, price: Number(body.price), image: body.image, description: body.description }];
-  } else {
-    res.status(400).json({ error: "Product information required: title and price must be provided." });
-    return;
-  }
-
-  const baseUrl = getBaseUrl(req);
-
   try {
+    // A session booking supplies its course ID so the server can use the
+    // current database price rather than trusting a client-modified amount.
+    let items: CheckoutItem[];
+    let requiresScheduling = body.requiresScheduling === true;
+    if (body.courseId && body.courseType === "online") {
+      const courses = await db
+        .select()
+        .from(onlineCoursesTable)
+        .where(eq(onlineCoursesTable.id, body.courseId))
+        .limit(1);
+      const course = courses[0];
+      if (!course) {
+        res.status(404).json({ error: "Session not found." });
+        return;
+      }
+      if (course.status === "unavailable") {
+        res.status(409).json({ error: "Session is currently unavailable." });
+        return;
+      }
+      items = [{
+        title: course.title,
+        price: Number(course.price),
+        image: course.image,
+        description: course.description,
+        requiresScheduling: true,
+      }];
+      requiresScheduling = true;
+    } else if (Array.isArray(body.items) && body.items.length > 0) {
+      items = body.items.map((i) => ({ ...i, price: Number(i.price) }));
+      requiresScheduling = requiresScheduling || items.some((item) => item.requiresScheduling === true);
+    } else if (body.title && Number(body.price) > 0) {
+      items = [{ title: body.title, price: Number(body.price), image: body.image, description: body.description }];
+    } else {
+      res.status(400).json({ error: "Product information required: title and price must be provided." });
+      return;
+    }
+
+    const baseUrl = getBaseUrl(req);
     const stripe = await getStripeClient();
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -67,6 +95,10 @@ router.post("/checkout/session", async (req, res) => {
         };
       }),
       mode: "payment",
+      metadata: {
+        requiresScheduling: requiresScheduling ? "true" : "false",
+        productName: items.length === 1 ? items[0].title : "Ban Al-Haidari purchase",
+      },
       success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/#products`,
     });
@@ -118,6 +150,7 @@ router.get("/checkout/verify", async (req, res) => {
         success: true,
         telegramUrl,
         productName: session.metadata?.["productName"] ?? "",
+        requiresScheduling: session.metadata?.["requiresScheduling"] === "true",
       });
     } else {
       res.status(402).json({
