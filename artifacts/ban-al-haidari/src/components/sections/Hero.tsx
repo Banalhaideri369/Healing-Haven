@@ -1,6 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { HeroBanner } from "./HeroBanner";
+import { CALENDLY_BOOKING_URL } from "@/lib/calendly";
 
 export function Hero() {
   const { scrollY } = useScroll();
@@ -59,7 +60,7 @@ export function Hero() {
           transition={{ duration: 0.8, delay: 1 }}
         >
           <a
-            href="#products"
+            href={CALENDLY_BOOKING_URL}
             className="group relative inline-flex items-center justify-center px-8 py-4 bg-transparent text-primary uppercase tracking-widest font-semibold text-sm overflow-hidden transition-all hover:text-primary-foreground"
             data-testid="link-hero-book"
           >

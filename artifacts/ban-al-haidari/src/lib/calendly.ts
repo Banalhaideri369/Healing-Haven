@@ -1,0 +1,1 @@
+export const CALENDLY_BOOKING_URL = "https://calendly.com/ban-alhaideri369/meet-with-me";

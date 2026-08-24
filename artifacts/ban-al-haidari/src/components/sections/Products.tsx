@@ -6,7 +6,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { apiGetRecordedCourses, apiGetOnlineCourses, type ApiRecordedCourse, type ApiOnlineCourse, API_BASE } from "@/lib/api";
 import { finalPrice } from "@/lib/courses";
 import { useCart } from "@/contexts/CartContext";
-import { useLocation } from "wouter";
+import { CALENDLY_BOOKING_URL } from "@/lib/calendly";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 32 },
@@ -15,7 +15,6 @@ const fadeUp = {
 
 export function Products() {
   const { t, isRTL } = useLanguage();
-  const [, navigate] = useLocation();
 
   const [recordedCourses, setRecordedCourses] = useState<ApiRecordedCourse[]>([]);
   const [onlineCourses, setOnlineCourses] = useState<ApiOnlineCourse[]>([]);
@@ -126,7 +125,6 @@ export function Products() {
                   <OnlineCourseCard
                     course={course}
                     isRTL={isRTL}
-                    onBook={() => navigate(`/booking/${course.id}`)}
                   />
                 </motion.div>
               ))}
@@ -265,11 +263,9 @@ function RecordedCourseCard({
 function OnlineCourseCard({
   course,
   isRTL,
-  onBook,
 }: {
   course: ApiOnlineCourse;
   isRTL: boolean;
-  onBook: () => void;
 }) {
   const { add, openCart } = useCart();
 
@@ -342,13 +338,14 @@ function OnlineCourseCard({
             <ShoppingCart size={13} />
             {isRTL ? "أضف للسلة" : "Add to Cart"}
           </button>
-          <button
-            onClick={onBook}
+          <a
+            href={CALENDLY_BOOKING_URL}
             className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 border border-secondary text-secondary text-xs font-semibold uppercase tracking-widest hover:bg-secondary hover:text-white active:scale-95 transition-all duration-200"
+            data-testid={`link-calendly-book-${course.id}`}
           >
             <Calendar size={13} />
             {isRTL ? "احجز الآن" : "Book Now"}
-          </button>
+          </a>
         </div>
       </div>
     </div>
