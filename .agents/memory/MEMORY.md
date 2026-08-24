@@ -1,2 +1,3 @@
 - [Firebase vs PostgreSQL split](firebase-postgres-split.md) — Firebase Auth only; all data (courses, bookings, profiles, users) in Neon PostgreSQL via Drizzle.
 - [GitHub backup push rules](github-push-blocked.md) — Replit is the source of truth; backup script must force-push when remote diverges, and clear git lock files before any git write operations.
+- [Neon connection validation](neon-connection-validation.md) — API startup can succeed while database queries fail; validate credentials before applying schema or seeds.

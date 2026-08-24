@@ -20,11 +20,12 @@ bash scripts/push-to-github.sh
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- `pnpm dev` — run the frontend workspace app
+- `pnpm api:dev` — run the API server
+- `pnpm db:push` — apply the Drizzle schema to the development database
+- `pnpm db:seed` — add starter courses only when the corresponding catalog tables are empty
+- `pnpm db:seed:testimonials` — replace testimonials with the scripted testimonial data
+- `pnpm run build` — build all workspace packages
 - Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
